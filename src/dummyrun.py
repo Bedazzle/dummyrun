@@ -18,6 +18,7 @@ class HerbertHtmlWriter(HtmlWriter):
     class GraphicsState(IntEnum):
         SPACE = 0xF5
         MOVE_DOWN_LEFT = 0xF3
+        CHAIN = 0xF6
         REPEAT_UP_RIGHT = 0xF9
         REPEAT_COL_PAIRS = 0xF7
         REPEAT_ROW_PAIRS = 0xF8
@@ -227,46 +228,54 @@ class HerbertHtmlWriter(HtmlWriter):
 
     def print_room_data( self, cwd, addr, fName ):
 
-        bg = self.make_background()
+        frames = []
 
-        for id, x, y in self.enum_room_data( addr, False ):
-            self.make_block_data( bg, self.get_block_ptr_from_id( id ), 0, x, y, 0 )
-        
-        bgf = self.make_background()
-        for id, x, y in self.enum_room_data( addr, True ):
-            self.make_block_data( bgf, self.get_block_ptr_from_id( id ), 0, x, y, 0 )
-
-        frames = [ Frame( bg, scale=2, delay=100 ), Frame( bgf, scale=2, delay=100 ) ]
+        for flag in self.enum_room_flags( addr ):
+            bg = self.make_background()
+            for id, x, y in self.enum_room_data( addr, flag ):
+                self.make_block_data( bg, self.get_block_ptr_from_id( id ), 0, x, y, 0 )
+            frames.append( Frame( bg, scale=2, delay=100 ) )
         return self.handle_image( frames, fName, cwd )
-
+        
     def get_block_ptr_from_id( self, id ):
-        offset = 0xBD86 + 2 * id
+        offset = 0xDBB6 + 2 * id
         ptr = self.snapshot[ offset ] + 0x100 * self.snapshot[ offset + 1 ]
         return ptr
 
-    def enum_room_data( self, addr, flags ):
+    def enum_room_flags( self, addr ):
+        # Use flag 0 as "always"
+        yield 0
         x = self.snapshot[ addr ]
-        y = self.snapshot[ addr + 1 ]
-        id = self.snapshot[ addr + 2 ]
-        addr += 3
-
-        while( x != 0xFF ):
-
-            if( x == 0xF5):
+        while ( x != 0xFF ):
+            if x == 0xDE:
                 addr += 1
-
-            if id == 0xDE:
-                if not flags:
-                    # Skip over flag-dependent graphics on this run
-                    addr += 2
-            else:
-
-                yield id, x, y
-
+                yield self.snapshot[ addr ]
+            addr += 1
             x = self.snapshot[ addr ]
-            y = self.snapshot[ addr + 1 ]
-            id = self.snapshot[ addr + 2 ]
-            addr += 3
+
+    def enum_room_data( self, addr, tflag ):
+        x = self.snapshot[ addr ]
+        while( x != 0xFF ):
+            if( x == 0xF5):
+                # Skip over floor directive
+                yield 0x45, 0, 23
+                addr += 1
+            elif( x >= 0xF3 and x <= 0xF4):
+                # Skip over flag test
+                addr += 2
+            else:
+                if x == 0xDE:
+                    flag = self.snapshot[ addr + 1 ]
+                    addr += 2
+                    if 0 != tflag:
+                        # Skip over flag-dependent graphics on this run
+                        return
+                else:
+                    y = self.snapshot[ addr + 1 ]
+                    id = self.snapshot[ addr + 2 ]
+                    addr += 3
+                    yield id, x, y
+            x = self.snapshot[ addr ]
 
     def print_block_data( self, cwd, addr, fName ):
         
@@ -304,6 +313,7 @@ class HerbertHtmlWriter(HtmlWriter):
             if ( next >= 0x9E and next <= 0xC0 ):
                 rows = ( next - 0xA0 )
                 id = self.snapshot[ addr ]
+                addr += 1
                 for i in range( 0, rows ):
                     self.print_udg( bg, base, id, x , y, attr )
                     y += 1
@@ -347,6 +357,19 @@ class HerbertHtmlWriter(HtmlWriter):
                     self.print_udg( bg, base, id2, x, y, attr )
                     x += 1
 
+            if( next == HerbertHtmlWriter.GraphicsState.REPEAT_ROW_PAIRS ):
+                rows = self.snapshot[ addr ]
+                addr += 1
+                id = self.snapshot[ addr ]
+                addr += 1
+                id2 = self.snapshot[ addr ]
+                addr += 1
+                for i in range( 0, rows ):
+                    self.print_udg( bg, base, id, x, y, attr )
+                    y += 1
+                    self.print_udg( bg, base, id2, x, y, attr )
+                    y += 1
+
             if( next == HerbertHtmlWriter.GraphicsState.MOVE_DOWN_LEFT ):
                 x -= 1
                 y += 1
@@ -360,7 +383,9 @@ class HerbertHtmlWriter(HtmlWriter):
                     self.print_udg( bg, base, id, x, y, attr )
                     y += 1
                     x -= 1
-
+            
+            if( next == HerbertHtmlWriter.GraphicsState.CHAIN ):
+                addr = self.snapshot[ addr + 1 ] * 0x100 + self.snapshot[ addr ]
 
             if( next == HerbertHtmlWriter.GraphicsState.ATTR ):
                 attr = self.snapshot[ addr ]
