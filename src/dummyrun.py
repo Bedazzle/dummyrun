@@ -93,6 +93,36 @@ class HerbertHtmlWriter(HtmlWriter):
 
         return calls[ op ]
 
+    def draw_object( self, cwd, obj_id ):
+        addr = 0xC2E6 + ( obj_id * 32 )
+        attaddr = 0xc14e + ( obj_id * 4 )
+        udgs = []
+        for row in range( 0, 2 ):
+            udg = []
+            for col in range( 0, 2 ):
+                ptr = addr + ( row * 16 )
+                attrptr = attaddr + ( row * 2 ) + col
+                # Some object IDs are not used for actual objects,
+                # so don't use attributes from the main storage
+                if obj_id == 0x08:
+                    attr = 0x32
+                elif obj_id == 0x0D:
+                    attr = 5
+                elif obj_id == 0x14:
+                    attr = 6
+                else:
+                    attr = self.snapshot[ attrptr ]
+                bytes = []
+                for i in range( 0, 8 ):
+                    bytes.append( self.snapshot[ ptr + ( i * 2 ) + col ] )
+                udg.append( Udg( attr, bytes ) )
+            udgs.append( udg ) 
+        return self.handle_image( Frame( udgs, scale=2 ), 'object_' + str(obj_id), cwd )
+
+    def print_object_desc( self, cwd, obj_id ):
+        desc = self.print_object( obj_id )
+        return self.expand( desc, cwd )
+
     def print_object( self, obj_id ):
         base = 0xA07C
         

@@ -1009,17 +1009,16 @@ c$808A LD IX,$F332   ;
 ; Update the tears display
 ;
 ; Used by the routine at #R$A4E9.
-c$80AA LD A,($CA92)  ;
- $80AD OR A          ;
- $80AE RET NZ        ;
-
-; Update the full tears display
 ;
-; Used by the routine at #R$8158.
-c$80AF PUSH IX       ;
- $80B1 PUSH HL       ;
- $80B2 LD A,$03      ;
- $80B4 CALL $AF09    ;
+; B Amount of tears to increase by.
+c$80AA LD A,($CA92)  ; { Is Herbert currently immune (life just lost or demo mode?) (#R$CA92)
+ $80AD OR A          ; }
+ $80AE RET NZ        ; Return if so.
+; This entry point is used by the routine at #R$8158.
+*$80AF PUSH IX       ; { Remember #REGix and #REGhl.
+ $80B1 PUSH HL       ; }
+ $80B2 LD A,$03      ; { Play the "ouch" sound effect.
+ $80B4 CALL $AF09    ; }
 *$80B7 LD A,($CA91)  ;
  $80BA PUSH AF       ;
  $80BB LD L,A        ;
@@ -1028,8 +1027,8 @@ c$80AF PUSH IX       ;
  $80BF ADD A,A       ;
  $80C0 LD L,A        ;
  $80C1 LD H,$00      ;
- $80C3 LD DE,$F332   ;
- $80C6 ADD HL,DE     ;
+ $80C3 LD DE,$F332   ; { Add the base address of the screen offset table (#R$F332)
+ $80C6 ADD HL,DE     ; }
  $80C7 PUSH HL       ;
  $80C8 POP IX        ;
  $80CA LD C,$FF      ;
@@ -1041,30 +1040,31 @@ c$80AF PUSH IX       ;
  $80D2 ADD A,A       ;
  $80D3 LD E,A        ;
  $80D4 LD D,$00      ;
- $80D6 LD HL,$FB52   ;
- $80D9 ADD HL,DE     ;
+ $80D6 LD HL,$FB52   ; { Add the base address of the "full tears" graphic (#R$FB52)
+ $80D9 ADD HL,DE     ; }
  $80DA LD E,(IX+$00) ;
  $80DD LD D,(IX+$01) ;
  $80E0 INC IX        ;
  $80E2 INC IX        ;
- $80E4 LDI           ;
+ $80E4 LDI           ; { Copy the graphic over.
  $80E6 LDI           ;
  $80E8 LDI           ;
- $80EA LDI           ;
- $80EC LD A,($CA91)  ;
- $80EF INC A         ;
- $80F0 LD ($CA91),A  ;
- $80F3 CP $23        ;
- $80F5 JR C,$8100    ;
- $80F7 LD A,$01      ;
- $80F9 LD ($CA92),A  ;
- $80FC POP HL        ;
+ $80EA LDI           ; }
+ $80EC LD A,($CA91)  ; Get the amount of tears (#R$CA91)
+ $80EF INC A         ; {Increment it and store it
+ $80F0 LD ($CA91),A  ; }
+ $80F3 CP $23        ; Has the tears reached #N$23 or more?
+ $80F5 JR C,$8100    ; Jump forward if not
+; There are too many tears, so lose a life
+ $80F7 LD A,$01      ; { Set the "lose a life" flag  (#R$CA92)
+ $80F9 LD ($CA92),A  ; }
+ $80FC POP HL        ; { Restore #REGhl and #REGix and return.
  $80FD POP IX        ;
- $80FF RET           ;
-*$8100 DJNZ $80B7    ;
- $8102 POP HL        ;
+ $80FF RET           ; }
+*$8100 DJNZ $80B7    ; Loop back round until enough tears have been added.
+ $8102 POP HL        ; { Restore #REGhl and #REGix and return.
  $8103 POP IX        ;
- $8105 RET           ;
+ $8105 RET           ; }
 
 ; Update the empty tears display
 ;
@@ -1123,26 +1123,30 @@ c$8106 PUSH IX       ;
 ; Check for any collision, and increase tears if there is any clash
 ;
 ; Used by the routines at #R$A5FE, #R$AF9F, #R$B1D9 and #R$C915.
-c$8158 LD A,($CA92)  ;
- $815B OR A          ;
- $815C RET NZ        ;
- $815D LD DE,($9D6B) ;
- $8161 LD A,L        ;
+;
+; HL Position on screen to check
+;
+c$8158 LD A,($CA92)  ; { Is Herbert currently immunne? (Lost a life or demo mode) (#R$CA92)
+ $815B OR A          ; }
+ $815C RET NZ        ; Return if it is.
+ $815D LD DE,($9D6B) ; Put the current position in #REGde
+ $8161 LD A,L        ; { Is the Y co-ordinate overlapping?
  $8162 SUB E         ;
  $8163 SUB $0D       ;
- $8165 CP $E6        ;
- $8167 RET C         ;
- $8168 LD A,H        ;
+ $8165 CP $E6        ; }
+ $8167 RET C         ; Return if it isn't.
+ $8168 LD A,H        ; { Is the X co-ordinate overlapping?
  $8169 SUB D         ;
  $816A SUB $1C       ;
- $816C CP $D6        ;
- $816E RET C         ;
- $816F PUSH IX       ;
- $8171 PUSH HL       ;
- $8172 CALL $80AF    ;
- $8175 POP HL        ;
- $8176 POP IX        ;
- $8178 RET           ;
+ $816C CP $D6        ; }
+ $816E RET C         ; Return if it isn't.
+; Herbert's position overlaps the one to check, so increase tears
+ $816F PUSH IX       ; { Remember #REGix and #REGhl
+ $8171 PUSH HL       ; }
+ $8172 CALL $80AF    ; Increase tears
+ $8175 POP HL        ; { Restore #REGhl and #REGix and return
+ $8176 POP IX        ; 
+ $8178 RET           ; }
 
 ; Item table
 b$8179 DEFB $00,$02,$00,$02,$00,$04,$00,$05
@@ -1202,37 +1206,37 @@ c$81EB LD A,($C5C4)  ; Get the current room.
 
 ; Item location tables
 ;
-; Each entry contains x co-ord, y co-ord, room number
-b$820B DEFB $80,$50,$00
- $820E DEFB $78,$98,$01
- $8211 DEFB $A8,$50,$02
- $8214 DEFB $C0,$68,$03
- $8217 DEFB $70,$40,$04
- $821A DEFB $78,$98,$05
- $821D DEFB $40,$98,$06
- $8220 DEFB $E8,$98,$07
- $8223 DEFB $78,$98,$08
- $8226 DEFB $40,$98,$09
- $8229 DEFB $78,$98,$0A
- $822C DEFB $28,$70,$0B
- $822F DEFB $90,$90,$0C
- $8232 DEFB $D8,$38,$0D
- $8235 DEFB $90,$98,$0E
- $8238 DEFB $78,$68,$0F
- $823B DEFB $48,$98,$10
- $823E DEFB $78,$98,$11
- $8241 DEFB $38,$40,$12
- $8244 DEFB $E8,$98,$13
- $8247 DEFB $78,$98,$14
- $824A DEFB $10,$98,$15
- $824D DEFB $58,$58,$16
- $8250 DEFB $58,$78,$17
- $8253 DEFB $50,$98,$18
- $8256 DEFB $68,$98,$19
- $8259 DEFB $C0,$98,$1A
- $825C DEFB $10,$48,$1B
- $825F DEFB $78,$98,$1C
- $8262 DEFB $70,$30,$1D
+; Each entry contains x co-ord, y co-ord, object ID
+b$820B DEFB $80,$50,$00 ; Room 00
+ $820E DEFB $78,$98,$01 ; Room 01
+ $8211 DEFB $A8,$50,$02 ; Room 02
+ $8214 DEFB $C0,$68,$03 ; Room 03
+ $8217 DEFB $70,$40,$04 ; Room 04
+ $821A DEFB $78,$98,$05 ; Room 05
+ $821D DEFB $40,$98,$06 ; Room 06
+ $8220 DEFB $E8,$98,$07 ; Room 07
+ $8223 DEFB $78,$98,$08 ; Room 08
+ $8226 DEFB $40,$98,$09 ; Room 09
+ $8229 DEFB $78,$98,$0A ; Room 0A
+ $822C DEFB $28,$70,$0B ; Room 0B
+ $822F DEFB $90,$90,$0C ; Room 0C
+ $8232 DEFB $D8,$38,$0D ; Room 0D
+ $8235 DEFB $90,$98,$0E ; Room 0E
+ $8238 DEFB $78,$68,$0F ; Room 0F
+ $823B DEFB $48,$98,$10 ; Room 10
+ $823E DEFB $78,$98,$11 ; Room 11
+ $8241 DEFB $38,$40,$12 ; Room 12
+ $8244 DEFB $E8,$98,$13 ; Room 13
+ $8247 DEFB $78,$98,$14 ; Room 14
+ $824A DEFB $10,$98,$15 ; Room 15
+ $824D DEFB $58,$58,$16 ; Room 16
+ $8250 DEFB $58,$78,$17 ; Room 17
+ $8253 DEFB $50,$98,$18 ; Room 18
+ $8256 DEFB $68,$98,$19 ; Room 19
+ $8259 DEFB $C0,$98,$1A ; Room 1A
+ $825C DEFB $10,$48,$1B ; Room 1B
+ $825F DEFB $78,$98,$1C ; Room 1C
+ $8262 DEFB $70,$30,$1D ; Room 1D
 
 ; Game flag table
 ;
@@ -1611,14 +1615,14 @@ c$8755 PUSH HL       ;
  $876B JP $88E6      ;
 
 ; Pattern 2 : HAS(x). Match if item x is carried
-c$876E LD DE,($CAA4) ;
- $8772 LD A,(HL)     ;
- $8773 INC HL        ;
- $8774 CP E          ;
- $8775 JP Z,$88C6    ;
- $8778 CP D          ;
- $8779 JP Z,$88C6    ;
- $877C JP $88DE      ;
+c$876E LD DE,($CAA4) ; Point #REGde to the inventory.
+ $8772 LD A,(HL)     ; Get the item parameter
+ $8773 INC HL        ; Point to the next item in the buffer
+ $8774 CP E          ; Is this item the first carried?
+ $8775 JP Z,$88C6    ; Signal true if it is.
+ $8778 CP D          ; Is this item the second carried?
+ $8779 JP Z,$88C6    ; Signal true if it is.
+ $877C JP $88DE      ; Otherwise signal false.
 
 ; Action 5 : Perform custom action x
 c$877F CALL $8784    ;
@@ -1669,7 +1673,7 @@ c$87AA LD A,$01      ;
  $87B3 LD A,(HL)     ;
  $87B4 INC HL        ;
  $87B5 PUSH HL       ;
- $87B6 LD HL,$CAA4   ;
+ $87B6 LD HL,$CAA4   ; Point #REGhl to the inventory.
  $87B9 CP (HL)       ;
  $87BA JR Z,$87BD    ;
  $87BC INC HL        ;
@@ -1713,10 +1717,10 @@ c$87EE XOR A         ;
  $87EF LD ($CAA6),A  ;
  $87F2 INC A         ;
  $87F3 LD ($CA8F),A  ;
- $87F6 LD A,($CAA4)  ;
- $87F9 LD B,A        ;
- $87FA LD A,($CAA5)  ;
- $87FD LD C,A        ;
+ $87F6 LD A,($CAA4)  ; { Put the first item carried in #REGb.
+ $87F9 LD B,A        ; }
+ $87FA LD A,($CAA5)  ; { Put the second item carried in #REGc.
+ $87FD LD C,A        ; }
  $87FE LD A,($C5C4)  ; { Put the current room in #REGe.
  $8801 LD E,A        ; }
  $8802 ADD A,A       ; { Multiply it by 3 to get a valid offset.
@@ -2199,7 +2203,7 @@ c$8CA5 EXX           ; Exchange all main registers.
  $8CB0 ADD HL,HL     ;
  $8CB1 ADD HL,HL     ;
  $8CB2 ADD HL,HL     ; }
- $8CB3 LD SP,$F4B2   ; Point the stack at the start of the screen offset table. (#R$F482)
+ $8CB3 LD SP,$F4B2   ; Point the stack at the start of the graphic data. (#R$F4B2)
  $8CB6 ADD HL,SP     ; { Add the offset so the stack is at the right screen address.
  $8CB7 LD SP,HL      ; }
  $8CB8 LD A,($9DA6)  ; Get the x co-ordinate.
@@ -2271,7 +2275,7 @@ c$8D04 EXX           ; Exchange main registers.
  $8D0F ADD HL,HL     ;
  $8D10 ADD HL,HL     ;
  $8D11 ADD HL,HL     ; }
- $8D12 LD SP,($8CB4) ; Set the stack pointer to the start of the graphics table. (#R$F482)
+ $8D12 LD SP,($8CB4) ; Set the stack pointer to the start of the graphics table.
  $8D16 ADD HL,SP     ; { Use this to set the stack pointer at the graphic data for this object.
  $8D17 LD SP,HL      ; }
  $8D18 LD A,($9DA6)  ; { Put the X co-ordinate in #REGb.
@@ -3168,7 +3172,7 @@ c$9338 EXX           ;
  $93B7 LD SP,($9DAB) ;
  $93BB RET           ;
 
-; Routine at 93BC
+; Update and draw moving objects
 ;
 ; Used by the routines at #R$9AF1, #R$A770, #R$B048, #R$B174, #R$B315, #R$B4DA,
 ; #R$B65D, #R$B7AB, #R$BA69, #R$BAF0, #R$BF82 and #R$BFE4.
@@ -3412,7 +3416,7 @@ c$95BB LD SP,$0000   ; Point the stack somewhere safe.
 ; This entry point is used by the routines at #R$9616 and #R$9AF1.
 *$95F0 CALL $96BE    ; Copy the sprite buffer to the screen buffer.
  $95F3 CALL $A353    ;
- $95F6 CALL $A5A5    ;
+ $95F6 CALL $A5A5    ; Run custom routines for the room
 ; This entry point is used by the routine at #R$A95B.
 *$95F9 CALL $9097    ;
  $95FC CALL $92C0    ;
@@ -3797,7 +3801,7 @@ c$9A46 CALL $9AAF    ;
  $9A55 LD ($9DCB),A  ;
 *$9A58 CALL $96BE    ; Copy the sprite buffer to the screen buffer.
  $9A5B CALL $A353    ;
- $9A5E CALL $A5A5    ;
+ $9A5E CALL $A5A5    ; Run custom routines for the room.
  $9A61 CALL $9338    ;
  $9A64 LD HL,$99C1   ;
  $9A67 LD ($8CB4),HL ;
@@ -3872,9 +3876,9 @@ c$9AAF LD A,($C5C4)  ; Get the current room.
 ;
 ; Used by the routines at #R$95BB, #R$A8B0, #R$A8EE, #R$A975, #R$AD28 and
 ; #R$C78F.
-c$9AF1 LD A,($CA92)  ;
- $9AF4 OR A          ;
- $9AF5 RET Z         ;
+c$9AF1 LD A,($CA92)  ; { Is Herbert immune? (Just lost a life or demo mode) (#R$CA92)
+ $9AF4 OR A          ; }
+ $9AF5 RET Z         ; Return if so.
  $9AF6 LD A,($CAAD)  ;
  $9AF9 OR A          ;
  $9AFA RET NZ        ;
@@ -3901,10 +3905,10 @@ c$9AF1 LD A,($CA92)  ;
  $9B27 LD ($CA9B),A  ;
 *$9B2A CALL $96BE    ; Copy the sprite buffer to the screen buffer.
  $9B2D CALL $A353    ;
- $9B30 CALL $A5A5    ;
+ $9B30 CALL $A5A5    ; Run custom routines on the room.
  $9B33 CALL $9338    ;
- $9B36 LD HL,$B8D4   ;
- $9B39 LD ($8CB4),HL ;
+ $9B36 LD HL,$B8D4   ; { Set to draw clouds (#R$B8D4)
+ $9B39 LD ($8CB4),HL ; }
  $9B3C LD HL,($9D6B) ;
  $9B3F LD A,H        ;
  $9B40 SUB $10       ;
@@ -3928,7 +3932,7 @@ c$9AF1 LD A,($CA92)  ;
  $9B67 LD ($CA96),A  ;
  $9B6A LD ($CA94),A  ;
  $9B6D LD SP,$0000   ;
- $9B70 XOR A         ;
+ $9B70 XOR A         ; Set #REGa to 0 to set some flags
  $9B71 LD ($CA92),A  ;
  $9B74 LD ($CA9D),A  ;
  $9B77 LD A,($C5C4)  ; Get the current room.
@@ -3941,7 +3945,7 @@ c$9AF1 LD A,($CA92)  ;
  $9B88 LD A,$32      ;
  $9B8A LD ($B1D0),A  ;
 *$9B8D JP $95F0      ;
-*$9B90 XOR A         ;
+*$9B90 XOR A         ; Set #REGa to 0 to set some flags
  $9B91 LD ($CA92),A  ;
  $9B94 LD ($CA9D),A  ;
  $9B97 JP $95F0      ;
@@ -3952,7 +3956,7 @@ c$9B9A LD B,$06      ;
  $9B9D CALL $90F7    ;
  $9BA0 PUSH HL       ;
  $9BA1 PUSH DE       ;
- $9BA2 CALL $A5A5    ;
+ $9BA2 CALL $A5A5    ; Run custom routines on the room.
  $9BA5 POP DE        ;
  $9BA6 POP HL        ;
  $9BA7 POP BC        ;
@@ -4240,7 +4244,7 @@ g$9D66 DEFB $A8,$00
 ; Game status buffer at 9D68
 g$9D68 DEFB $00,$D3,$02
 
-; Current position
+; Current position (X, Y)
 b$9D6B DEFB $64,$98
 
 ; Data block at 9D6D
@@ -4277,7 +4281,9 @@ b$9DAD DEFB $03
 b$9DAE DEFB $30,$30,$60,$00,$00,$00,$00,$00
  $9DB6 DEFB $01,$46,$46,$46,$46,$46,$46,$46
  $9DBE DEFB $46,$46,$46,$46,$46,$46,$46,$46
- $9DC6 DEFB $00,$00
+
+; Data block at 9DC6
+b$9DC6 DEFW $0000
 
 ; Selected control mechanism (0 = Keyboard, 1 = Kempston, 2 = Sinclair)
 g$9DC8 DEFB $01
@@ -4743,18 +4749,18 @@ c$A242 PUSH HL       ; Store #REGhl.
  $A26D LD DE,$0313   ; Set the position.
  $A270 LD C,$45      ; Set bright cyan on black.
  $A272 CALL $9F4E    ; Print the graphic.
- $A275 LD A,($CAA4)  ;
- $A278 LD HL,$C2E6   ;
- $A27B LD ($8CB4),HL ;
- $A27E LD HL,$0080   ;
- $A281 LD ($9DA6),HL ;
- $A284 CALL $C0E9    ;
- $A287 CALL $8D04    ;
- $A28A LD A,($CAA5)  ;
- $A28D LD H,$18      ;
- $A28F LD ($9DA6),HL ;
- $A292 CALL $C0E9    ;
- $A295 CALL $8D04    ;
+ $A275 LD A,($CAA4)  ; Put the first item carried in #REGa.
+ $A278 LD HL,$C2E6   ; Point #REGhl at the object graphics buffer
+ $A27B LD ($8CB4),HL ; Set the graphic routine to draw this
+ $A27E LD HL,$0080   ; { Set position #N$80 , 00 
+ $A281 LD ($9DA6),HL ; }
+ $A284 CALL $C0E9    ; Store the object attributes.
+ $A287 CALL $8D04    ; Put the object in the sprite buffer.
+ $A28A LD A,($CAA5)  ; Put the second item carried in #REGa.
+ $A28D LD H,$18      ; { Move position to #N$80 , #N$18
+ $A28F LD ($9DA6),HL ; }
+ $A292 CALL $C0E9    ; Store the object attributes.
+ $A295 CALL $8D04    ; Put the object in the sprite buffer.
  $A298 POP HL        ; { Restore #REGhl and return.
  $A299 RET           ; }
 
@@ -4882,109 +4888,136 @@ c$A346 OR A          ; Is the item 0?
  $A34F JP NZ,$A34B   ; { Loop until the right pointer is found.
  $A352 RET           ; }
 
-; Routine at A353
+; Draw objects in this room
 ;
 ; Used by the routines at #R$95BB, #R$9727, #R$975F, #R$9A46, #R$9AF1, #R$A8EE,
 ; #R$A975, #R$AD28 and #R$BFC7.
-c$A353 LD A,($C5C4)  ;
- $A356 CP $1B        ;
- $A358 JR NZ,$A36C   ;
- $A35A LD A,($CAB5)  ;
- $A35D OR A          ;
- $A35E RET Z         ;
- $A35F LD DE,($CAA4) ;
- $A363 LD A,$13      ;
- $A365 CP D          ;
- $A366 JR Z,$A37B    ;
- $A368 CP E          ;
- $A369 RET NZ        ;
- $A36A JR $A37B      ;
-*$A36C CP $0A        ;
- $A36E RET Z         ;
- $A36F CP $14        ;
- $A371 RET Z         ;
- $A372 CP $16        ;
+c$A353 LD A,($C5C4)  ; Get the current room in #REGa (#R$C5C4)
+ $A356 CP $1B        ; Is it the shooting gallery?
+ $A358 JR NZ,$A36C   ; Jump forward if it isn't.
+; There are only items in the shooting gallery if it's not dark.
+ $A35A LD A,($CAB5)  ; { Is the torch working?
+ $A35D OR A          ; }
+ $A35E RET Z         ; Return if it isn't.
+ $A35F LD DE,($CAA4) ; Point #REGde to the inventory.
+ $A363 LD A,$13      ; Look for item #N$13 (#CALL:print_object_desc($13))
+ $A365 CP D          ; Is it the first item carried?
+ $A366 JR Z,$A37B    ; Jump forward if it is.
+ $A368 CP E          ; Is it the second item carried?
+ $A369 RET NZ        ; Return if it isn't.
+ $A36A JR $A37B      ; Otherwise jump forward to draw the object
+; Some rooms don't have any objects
+*$A36C CP $0A        ; { Return if the room is the Dalek Room, the lift (and shaft),
+ $A36E RET Z         ; or the cannon room.
+ $A36F CP $14        ; 
+ $A371 RET Z         ; 
+ $A372 CP $16        ; 
  $A374 RET Z         ;
  $A375 CP $08        ;
  $A377 RET Z         ;
  $A378 CP $10        ;
- $A37A RET Z         ;
-*$A37B LD A,($C5C4)  ;
- $A37E LD DE,$C2E6   ;
- $A381 LD ($8CB4),DE ;
+ $A37A RET Z         ; }
+; This room should display objects, so do it now.
+*$A37B LD A,($C5C4)  ; Get the current room in #REGa (#R$C5C4)
+ $A37E LD DE,$C2E6   ; { Change the routine at #R$8CA5
+ $A381 LD ($8CB4),DE ; to use the object graphics at #R$C2E6 }
  $A385 LD HL,($9D6B) ;
  $A388 LD ($9DC6),HL ;
- $A38B LD E,A        ;
- $A38C ADD A,A       ;
- $A38D ADD A,E       ;
- $A38E LD E,A        ;
- $A38F LD D,$00      ;
- $A391 LD HL,$820B   ;
- $A394 ADD HL,DE     ;
- $A395 LD A,(HL)     ;
- $A396 LD ($9DA6),A  ;
- $A399 INC HL        ;
- $A39A LD A,(HL)     ;
+ $A38B LD E,A        ; { Multiply the room number by 3
+ $A38C ADD A,A       ; and store it in #REGde.
+ $A38D ADD A,E       ; 
+ $A38E LD E,A        ; 
+ $A38F LD D,$00      ; }
+ $A391 LD HL,$820B   ; { Add the base offset of the room object data (#R$820B).
+ $A394 ADD HL,DE     ; }
+ $A395 LD A,(HL)     ; { Put the X co-ordinate in #R$9DA6.
+ $A396 LD ($9DA6),A  ; }
+ $A399 INC HL        ; Move to the next item in the table.
+ $A39A LD A,(HL)     ; { Put the Y co-ordinate plus #N$10 in #R$9DA7.
  $A39B ADD A,$10     ;
- $A39D LD ($9DA7),A  ;
- $A3A0 INC HL        ;
- $A3A1 LD A,($CAA6)  ;
- $A3A4 OR A          ;
- $A3A5 LD H,(HL)     ;
- $A3A6 JR NZ,$A3C4   ;
- $A3A8 LD A,$01      ;
- $A3AA LD ($CAA6),A  ;
- $A3AD LD A,($C5C4)  ;
- $A3B0 CP $1D        ;
- $A3B2 JR NZ,$A3BA   ;
- $A3B4 LD A,H        ;
+ $A39D LD ($9DA7),A  ; }
+ $A3A0 INC HL        ; Move to the next item in the table. 
+ $A3A1 LD A,($CAA6)  ; { Has the object been drawn already? (#R$CAA6)
+ $A3A4 OR A          ; }
+ $A3A5 LD H,(HL)     ; Put the object's room number in #REGh.
+ $A3A6 JR NZ,$A3C4   ; Move forward if the object has already been drawn.
+; The object needs rendering, as it's the first time it's being shown since entering the room.
+ $A3A8 LD A,$01      ; { Set the object drawn flag.
+ $A3AA LD ($CAA6),A  ; }
+ $A3AD LD A,($C5C4)  ; Get the current room. (#R$C5C4)
+ $A3B0 CP $1D        ; Is it the swimming pool?
+ $A3B2 JR NZ,$A3BA   ; Jump forward if it isn't.
+ $A3B4 LD A,H        ; Put the object ID in #REGh.
  $A3B5 CALL $C0E9    ;
  $A3B8 JR $A3C4      ;
 *$A3BA CALL $92DF    ;
  $A3BD LD A,H        ;
  $A3BE CALL $C0E9    ;
  $A3C1 CALL $9263    ;
-*$A3C4 LD A,H        ;
- $A3C5 CALL $8CA5    ;
- $A3C8 RET           ;
+; Done rendering the object, now put it in the sprite buffer
+*$A3C4 LD A,H        ; Put the object ID in #REGa.
+ $A3C5 CALL $8CA5    ; { Add it to the buffer and return.
+ $A3C8 RET           ; }
 
-; Data block at A3C9
-b$A3C9 DEFB $05,$A4,$0C,$A4,$10,$A4,$72,$A4
- $A3D1 DEFB $73,$A4,$91,$A4,$98,$A4,$9F,$A4
- $A3D9 DEFB $B0,$A4,$B1,$A4,$B5,$A4,$B9,$A4
- $A3E1 DEFB $BD,$A4,$C1,$A4,$D2,$A4,$E9,$A4
- $A3E9 DEFB $05,$A5,$08,$A5,$09,$A5,$1C,$A5
- $A3F1 DEFB $1F,$A5,$20,$A5,$24,$A5,$28,$A5
- $A3F9 DEFB $2C,$A5,$30,$A5,$34,$A5,$38,$A5
- $A401 DEFB $79,$A5,$80,$A5
+; Custom routines for each room
+w$A3C9 DEFW $A405   ; Room 00 (Gym)
+ $A3CB DEFW $A40C   ; Room 01 (Gardening)
+ $A3CD DEFW $A410   ; Room 02 (Toy department)
+ $A3CF DEFW $A472   ; Room 03 (Cloakroom)
+ $A3D1 DEFW $A473   ; Room 04 (Tennis Room)
+ $A3D3 DEFW $A491   ; Room 05 (Hi-fi Department)
+ $A3D5 DEFW $A498   ; Room 06 (Games Room)
+ $A3D7 DEFW $A49F   ; Room 07 (Blitz game)
+ $A3D9 DEFW $A4B0   ; Room 08 (Lift)
+ $A3DB DEFW $A4B1   ; Room 09 (Inside Fort)
+ $A3DD DEFW $A4B5   ; Room 0A (Dalek Room)
+ $A3DF DEFW $A4B9   ; Room 0B (Furniture)
+ $A3E1 DEFW $A4BD   ; Room 0C (Library)
+ $A3E3 DEFW $A4C1   ; Room 0D (Lost and Found)
+ $A3E5 DEFW $A4D2   ; Room 0E (Sports Department_)
+ $A3E7 DEFW $A4E9   ; Room 0F (Sandcastle)
+ $A3E9 DEFW $A505   ; Room 10 (Cannon room)
+ $A3EB DEFW $A508   ; Room 11 (Not used)
+ $A3ED DEFW $A509   ; Room 12 (Toy Fort)
+ $A3EF DEFW $A51C   ; Room 13 (Beds)
+ $A3F1 DEFW $A51F   ; Room 14 (Bottom of lift shaft)
+ $A3F3 DEFW $A520   ; Room 15 (Wine Cellar)
+ $A3F5 DEFW $A524   ; Room 16 (Lift Shaft)
+ $A3F7 DEFW $A528   ; Room 17 (Diningware)
+ $A3F9 DEFW $A52C   ; Room 18 (Glove door room)
+ $A3FB DEFW $A530   ; Room 19 (Main entrance)
+ $A3FD DEFW $A534   ; Room 1A (Front door)
+ $A3FF DEFW $A538   ; Room 1B (Shooting Gallery)
+ $A401 DEFW $A579   ; Room 1C (Lights)
+ $A403 DEFW $A580   ; Room 1D (Swimming pool)
 
-; Routine at A405
+; Routine for room 00 (Gym)
 c$A405 CALL $CA3F    ;
  $A408 CALL $A8EE    ;
  $A40B RET           ;
 
-; Routine at A40C
+; Routine for room 01 (Gardening)
 c$A40C CALL $B655    ;
  $A40F RET           ;
 
-; Routine at A410
-c$A410 LD DE,($CAA4) ;
- $A414 LD A,$0B      ;
- $A416 CP D          ;
- $A417 JR Z,$A41D    ;
- $A419 CP E          ;
- $A41A JP NZ,$AD7D   ;
-*$A41D CALL $AD28    ;
- $A420 RET           ;
+; Routine for room 02 (Toy Department)
+c$A410 LD DE,($CAA4) ; Point #REGde to the inventory. (#R$CAA4)
+ $A414 LD A,$0B      ; Look for item #N$0B ( #CALL:print_object_desc($0B) )
+ $A416 CP D          ; Is it the first item?
+ $A417 JR Z,$A41D    ; Jump forward if so.
+ $A419 CP E          ; Is it the second item?
+ $A41A JP NZ,$AD7D   ; If not, jump to the main display routine.
+*$A41D CALL $AD28    ; { Otherwise, use the box key to make the jack
+ $A420 RET           ; in the box pop up. }
 
 ; Hidden message
 t$A421 DEFM "HERBERT'S DUMMY RUN (C) 1985 MIKRO-GEN. HI! to CHRIS WOOD and all "
  $A463 DEFM "at Your Speccy!"
 
-; Routine at A472
-c$A472 RET           ;
+; Routine for room 03
+c$A472 RET           ; Nothing extra to do
 
-; Routine at A473
+; Routine for room 04
 c$A473 LD A,($9D67)  ;
  $A476 OR A          ;
  $A477 JR Z,$A480    ;
@@ -4999,17 +5032,17 @@ c$A473 LD A,($9D67)  ;
  $A48C CALL $AF09    ;
  $A48F JR $A47C      ;
 
-; Routine at A491
+; Routine for room 05
 c$A491 CALL $CA3F    ;
  $A494 CALL $B048    ;
  $A497 RET           ;
 
-; Routine at A498
+; Routine for room 06
 c$A498 CALL $CA3F    ;
  $A49B CALL $B315    ;
  $A49E RET           ;
 
-; Routine at A49F
+; Routine for room 07
 c$A49F LD A,($CA8E)  ;
  $A4A2 OR A          ;
  $A4A3 RET NZ        ;
@@ -5017,36 +5050,38 @@ c$A49F LD A,($CA8E)  ;
  $A4A7 LD ($9D6B),HL ;
  $A4AA LD ($CABA),HL ;
  $A4AD CALL $BE93    ;
- $A4B0 RET           ;
 
-; Routine at A4B1
+; Routine for room 08
+c$A4B0 RET           ;
+
+; Routine for room 09
 c$A4B1 CALL $B174    ;
  $A4B4 RET           ;
 
-; Routine at A4B5
+; Routine for room 0A
 c$A4B5 CALL $C78F    ;
  $A4B8 RET           ;
 
-; Routine at A4B9
+; Routine for room 0B
 c$A4B9 CALL $B491    ;
  $A4BC RET           ;
 
-; Routine at A4BD
+; Routine for room 0C
 c$A4BD CALL $CA3F    ;
  $A4C0 RET           ;
 
-; Routine at A4C1
+; Routine for room 0D (Lost and found)
 ;
 ; Used by the routines at #R$9727 and #R$975F.
-c$A4C1 LD HL,$C566   ;
- $A4C4 LD ($8CB4),HL ;
- $A4C7 LD HL,$48C0   ;
- $A4CA LD ($9DA6),HL ;
- $A4CD XOR A         ;
- $A4CE CALL $8CA5    ;
- $A4D1 RET           ;
+c$A4C1 LD HL,$C566   ; { Set to draw Wally
+ $A4C4 LD ($8CB4),HL ; }
+ $A4C7 LD HL,$48C0   ; { Set the position
+ $A4CA LD ($9DA6),HL ; }
+ $A4CD XOR A         ; { Draw the object and return.
+ $A4CE CALL $8CA5    ; 
+ $A4D1 RET           ; }
 
-; Routine at A4D2
+; Routine for room 0E
 c$A4D2 CALL $CA3F    ;
  $A4D5 XOR A         ;
  $A4D6 LD ($A67B),A  ;
@@ -5058,11 +5093,11 @@ c$A4D2 CALL $CA3F    ;
 *$A4E5 CALL $BAF0    ;
  $A4E8 RET           ;
 
-; Routine at A4E9
+; Routine for room 0F
 c$A4E9 CALL $B0B9    ;
  $A4EC CALL $B070    ;
- $A4EF LD DE,($CAA4) ;
- $A4F3 LD A,$1D      ;
+ $A4EF LD DE,($CAA4) ; Point #REGde to the inventory.
+ $A4F3 LD A,$1D      ; Look for item #N$1D (#CALL:print_object_desc($1D))
  $A4F5 CP D          ;
  $A4F6 RET Z         ;
  $A4F7 CP E          ;
@@ -5074,11 +5109,13 @@ c$A4E9 CALL $B0B9    ;
  $A501 CALL $80AA    ;
  $A504 RET           ;
 
-; Routine at A505
+; Routine for room 10
 c$A505 CALL $B65D    ;
- $A508 RET           ;
 
-; Routine at A509
+; Routine for room 11
+c$A508 RET           ;
+
+; Routine for room 12
 c$A509 LD A,($CA8E)  ;
  $A50C OR A          ;
  $A50D JR NZ,$A518   ;
@@ -5089,36 +5126,39 @@ c$A509 LD A,($CA8E)  ;
 *$A518 CALL $B1D9    ;
  $A51B RET           ;
 
-; Routine at A51C
+; Routine for room 13
 c$A51C CALL $A883    ;
- $A51F RET           ;
 
-; Routine at A520
+; Routine for room 14
+c$A51F RET           ;
+
+; Routine for room 15
 c$A520 CALL $BF82    ;
  $A523 RET           ;
 
-; Data block at A524
-b$A524 DEFB $CD,$60,$AC,$C9
+; Routine for room 16
+c$A524 CALL $A6C0    ;
+ $A527 RET           ;
 
-; Routine at A528
+; Routine for room 17
 c$A528 CALL $CA3F    ;
  $A52B RET           ;
 
-; Routine at A52C
+; Routine for room 18
 c$A52C CALL $A770    ;
  $A52F RET           ;
 
-; Routine at A530
+; Routine for room 19
 c$A530 CALL $CA3F    ;
  $A533 RET           ;
 
-; Routine at A534
+; Routine for room 1A
 c$A534 CALL $BA69    ;
  $A537 RET           ;
 
-; Routine at A538
-c$A538 LD DE,($CAA4) ;
- $A53C LD A,$13      ;
+; Routine for room 1B
+c$A538 LD DE,($CAA4) ; Point #REGde to the inventory.
+ $A53C LD A,$13      ; Look for item #N$13 (#CALL:print_object_desc($13))
  $A53E CP D          ;
  $A53F JR Z,$A54B    ;
  $A541 CP E          ;
@@ -5148,12 +5188,12 @@ c$A538 LD DE,($CAA4) ;
  $A575 LD ($CAA6),A  ;
  $A578 RET           ;
 
-; Routine at A579
+; Routine for room 1C
 c$A579 CALL $CA3F    ;
  $A57C CALL $A79B    ;
  $A57F RET           ;
 
-; Routine at A580
+; Routine for room 1D
 c$A580 LD A,$01      ;
  $A582 LD ($CAA0),A  ;
  $A585 CALL $AE2E    ;
@@ -5172,20 +5212,20 @@ c$A580 LD A,$01      ;
 *$A5A1 LD ($9D6B),A  ;
  $A5A4 RET           ;
 
-; Routine at A5A5
+; Run custom routines for the current room
 ;
 ; Used by the routines at #R$95BB, #R$9A46 and #R$9AF1.
-c$A5A5 LD A,($C5C4)  ;
- $A5A8 ADD A,A       ;
- $A5A9 LD E,A        ;
- $A5AA LD D,$00      ;
- $A5AC LD HL,$A3C9   ;
- $A5AF ADD HL,DE     ;
- $A5B0 LD E,(HL)     ;
+c$A5A5 LD A,($C5C4)  ; Get the current room ID.
+ $A5A8 ADD A,A       ; { Double it and store it in #REGde.
+ $A5A9 LD E,A        ; 
+ $A5AA LD D,$00      ; }
+ $A5AC LD HL,$A3C9   ; Point #REGhl to the base address of room routines (#R$A3C9)
+ $A5AF ADD HL,DE     ; Add the room offset.
+ $A5B0 LD E,(HL)     ; { Store the resulting address in #REGde.
  $A5B1 INC HL        ;
- $A5B2 LD D,(HL)     ;
- $A5B3 PUSH DE       ;
- $A5B4 RET           ;
+ $A5B2 LD D,(HL)     ; }
+ $A5B3 PUSH DE       ; { Indrectly jump to it.
+ $A5B4 RET           ; }
 
 ; Routine at A5B5
 ;
@@ -5347,8 +5387,8 @@ c$A770 LD IX,$A76A   ;
  $A77E CALL $AFAA    ;
  $A781 XOR A         ;
  $A782 CALL $93BC    ;
- $A785 LD DE,($CAA4) ;
- $A789 LD A,$04      ;
+ $A785 LD DE,($CAA4) ; Point #REGde to the inventory.
+ $A789 LD A,$04      ; Look for item #N$04 (#CALL:print_object_desc($04))
  $A78B CP D          ;
  $A78C JR Z,$A797    ;
  $A78E CP E          ;
@@ -5707,29 +5747,30 @@ b$AC21 DEFB $E5,$06,$7E,$11,$20,$00,$DD,$21
 ; Data block at AD21
 b$AD21 DEFB $9D,$CD,$D1,$A5,$C3,$F0,$95
 
-; Routine at AD28
+; Room 02 : Open the jack in the box if Herbert is standing on it
 ;
 ; Used by the routine at #R$A410.
-c$AD28 LD HL,($9D6B) ;
- $AD2B LD A,L        ;
- $AD2C SUB $63       ;
- $AD2E CP $FA        ;
- $AD30 JR C,$AD7D    ;
- $AD32 LD A,H        ;
- $AD33 SUB $8A       ;
- $AD35 CP $FC        ;
- $AD37 JR C,$AD7D    ;
- $AD39 LD A,($CAB7)  ;
- $AD3C OR A          ;
- $AD3D JR NZ,$AD7D   ;
+c$AD28 LD HL,($9D6B) ; Get the current position in #REGhl (#R$9D6B)
+ $AD2B LD A,L        ; Get the X co-ordinate
+ $AD2C SUB $63       ; { Is it between #N$5D and #N$62?
+ $AD2E CP $FA        ; }
+ $AD30 JR C,$AD7D    ; Jump forward if not
+ $AD32 LD A,H        ; Get the Y co-ordinate
+ $AD33 SUB $8A       ; { Is it between #N$86 and #N$89?
+ $AD35 CP $FC        ; }
+ $AD37 JR C,$AD7D    ; Jump forward if not
+ $AD39 LD A,($CAB7)  ; { Is the box already open? (#R$CAB7)
+ $AD3C OR A          ; }
+ $AD3D JR NZ,$AD7D   ; Jump forward if it is, nothing more to do.
+; Herbert is standing on the box, and has the key, so open it.
  $AD3F LD ($CA96),A  ;
  $AD42 LD ($CA94),A  ;
  $AD45 LD ($CA95),A  ;
- $AD48 INC A         ;
- $AD49 LD ($CAB7),A  ;
+ $AD48 INC A         ; { Set the box to open
+ $AD49 LD ($CAB7),A  ; }
 *$AD4C CALL $96BE    ; Copy the sprite buffer to the screen buffer.
  $AD4F CALL $A353    ;
- $AD52 CALL $AD7D    ;
+ $AD52 CALL $AD7D    ; Call the display routine
  $AD55 LD HL,($9D6B) ;
  $AD58 LD ($9DC6),HL ;
  $AD5B LD A,($9D6C)  ;
@@ -6041,7 +6082,7 @@ b$AF79 DEFB $00,$32,$01,$01,$32,$64,$0A,$00
  $AF91 DEFB $32,$50,$01,$01,$05,$64,$00,$E6
  $AF99 DEFB $1C,$01,$1C,$1C,$01,$01
 
-; Routine at AF9F
+; Check for a simple collision, and increase tears if necessary
 ;
 ; Used by the routines at #R$A706, #R$A770, #R$A79B, #R$A883, #R$B048, #R$B0B9,
 ; #R$B174, #R$B315, #R$B491, #R$B4DA, #R$B508, #R$B65D, #R$B7AB, #R$BA69,
@@ -6049,73 +6090,85 @@ b$AF79 DEFB $00,$32,$01,$01,$32,$64,$0A,$00
 c$AF9F LD A,($CA9D)  ;
  $AFA2 OR A          ;
  $AFA3 RET NZ        ;
- $AFA4 LD B,$01      ;
- $AFA6 CALL $8158    ;
- $AFA9 RET           ;
+ $AFA4 LD B,$01      ; Set to increment by 1 line
+ $AFA6 CALL $8158    ; Do the check
+ $AFA9 RET           ; Return
 
-; Routine at AFAA
+; Update moving object positions in the room
 ;
 ; Used by the routines at #R$A706, #R$A770, #R$A79B, #R$A883, #R$B048, #R$B0B9,
 ; #R$B174, #R$B1D9, #R$B315, #R$B491, #R$B4DA, #R$B65D, #R$B7AB, #R$BD4D,
 ; #R$BF82 and #R$BFE4.
-c$AFAA XOR A         ;
- $AFAB LD ($9DD4),A  ;
- $AFAE LD L,(IX+$00) ;
- $AFB1 LD H,(IX+$01) ;
- $AFB4 LD E,(IX+$02) ;
- $AFB7 LD D,(IX+$03) ;
- $AFBA LD A,E        ;
- $AFBB ADD A,L       ;
- $AFBC LD L,A        ;
- $AFBD CP (IY+$00)   ;
- $AFC0 JR C,$AFCF    ;
-*$AFC2 LD A,E        ;
- $AFC3 NEG           ;
- $AFC5 LD (IX+$02),A ;
- $AFC8 LD A,$01      ;
- $AFCA LD ($9DD4),A  ;
- $AFCD JR $AFD4      ;
-*$AFCF CP (IY+$01)   ;
- $AFD2 JR C,$AFC2    ;
-*$AFD4 LD A,D        ;
+;
+; B 'nth' object to process
+; IX On entry, holds the current object positions. On exit, holds positions for the next object.
+; IY Holds information about how the objects should move
+c$AFAA XOR A         ; { Default the object direction to 0.
+ $AFAB LD ($9DD4),A  ; }
+ $AFAE LD L,(IX+$00) ; { Put the current position in #REGhl.
+ $AFB1 LD H,(IX+$01) ; }
+ $AFB4 LD E,(IX+$02) ; { Put the movement displacement in #REGde.
+ $AFB7 LD D,(IX+$03) ; }
+; Check co-ordinates in X
+ $AFBA LD A,E        ; { Increment or decrement the X co-ordinate.
+ $AFBB ADD A,L       ; 
+ $AFBC LD L,A        ; }
+ $AFBD CP (IY+$00)   ; Has it reached the minimum value?
+ $AFC0 JR C,$AFCF    ; Jump forward if not.
+*$AFC2 LD A,E        ; { Invert the X co-ordinate, so the object
+ $AFC3 NEG           ; starts moving in the other direction.
+ $AFC5 LD (IX+$02),A ; }
+ $AFC8 LD A,$01      ; { Swap the object direction and move on.
+ $AFCA LD ($9DD4),A  ; 
+ $AFCD JR $AFD4      ; }
+*$AFCF CP (IY+$01)   ; Has the moving object reached the maximum value?
+ $AFD2 JR C,$AFC2    ; Jump back if so.
+; Check co-ordinates in Y
+*$AFD4 LD A,D        ; { Increment or decrement the Y co-ordinate.
  $AFD5 ADD A,H       ;
- $AFD6 LD H,A        ;
- $AFD7 CP (IY+$02)   ;
- $AFDA JR NC,$AFEC   ;
-*$AFDC LD A,D        ;
- $AFDD NEG           ;
- $AFDF LD (IX+$03),A ;
- $AFE2 LD A,($9DD4)  ;
+ $AFD6 LD H,A        ; }
+ $AFD7 CP (IY+$02)   ; Has it reached the minimum value?
+ $AFDA JR NC,$AFEC   ; Jump forward if not.
+*$AFDC LD A,D        ; { Invert the Y co-ordinate, so the object
+ $AFDD NEG           ; starts moving in the other direction.
+ $AFDF LD (IX+$03),A ; }
+ $AFE2 LD A,($9DD4)  ; { Swap the object direction and move on.
  $AFE5 ADD A,$02     ;
  $AFE7 LD ($9DD4),A  ;
- $AFEA JR $AFF1      ;
-*$AFEC CP (IY+$03)   ;
- $AFEF JR NC,$AFDC   ;
-*$AFF1 LD (IX+$01),H ;
- $AFF4 LD (IX+$00),L ;
- $AFF7 LD ($9DA6),HL ;
+ $AFEA JR $AFF1      ; }
+*$AFEC CP (IY+$03)   ; Has it reached the maximum value?
+ $AFEF JR NC,$AFDC   ; Jump back if so.
+; The object's position has been refreshed, to set it
+*$AFF1 LD (IX+$01),H ; { Set new co-ordinates.
+ $AFF4 LD (IX+$00),L ; }
+ $AFF7 LD ($9DA6),HL ; Put a copy of this in #R$9DA6.
 ; This entry point is used by the routines at #R$9616, #R$994C and #R$BAF0.
-*$AFFA INC IX        ;
+*$AFFA INC IX        ; { Move to the next entry in the buffer and return.
  $AFFC INC IX        ;
  $AFFE INC IX        ;
- $B000 INC IX        ;
- $B002 RET           ;
+ $B000 INC IX        ; 
+ $B002 RET           ; }
 
-; Routine at B003
+; Get data for moving objects in the room
 ;
 ; Used by the routines at #R$A706, #R$A770, #R$A79B, #R$A883, #R$B048, #R$B0B9,
 ; #R$B174, #R$B491, #R$B4DA, #R$B65D, #R$B7AB, #R$BD4D and #R$BFE4.
-c$B003 LD A,($CA8E)  ;
- $B006 OR A          ;
- $B007 JR NZ,$B01D   ;
- $B009 INC A         ;
- $B00A LD ($CA8E),A  ;
- $B00D LD L,(IX+$01) ;
- $B010 LD H,(IX+$02) ;
- $B013 LD DE,$C8CF   ;
- $B016 LD B,$00      ;
- $B018 LD C,(IX+$00) ;
- $B01B LDIR          ;
+;
+; IX On entry, points to moving object data. On exit, points to storage of current positions.
+; IY On exit, points to information about how objects move.
+; B On exit, holds the number of moving objects in the room.
+c$B003 LD A,($CA8E)  ; { Have the moving objects already been set up? (#R$CA8E)
+ $B006 OR A          ; }
+ $B007 JR NZ,$B01D   ; Jump forward if so.
+ $B009 INC A         ; { Mark the objects as set up
+ $B00A LD ($CA8E),A  ; }
+ $B00D LD L,(IX+$01) ; { Put the source pointer ??? in #REGhl.
+ $B010 LD H,(IX+$02) ; }
+ $B013 LD DE,$C8CF   ; Point #REGde to the temporary storage.
+ $B016 LD B,$00      ; { Set #REGbc to the length
+ $B018 LD C,(IX+$00) ; }
+ $B01B LDIR          ; Copy the data
+; The moving objects are initialised, so update them
 *$B01D LD B,(IX+$05) ;
  $B020 LD L,(IX+$03) ;
  $B023 LD H,(IX+$04) ;
@@ -6291,7 +6344,7 @@ c$B1D9 LD IX,$B1D0   ;
  $B229 OR A          ;
  $B22A JR Z,$B236    ;
  $B22C LD DE,($CAA4) ; Put the items carried in #REGde.
- $B230 LD A,$0E      ;
+ $B230 LD A,$0E      ; Look for item #N$0E (#CALL:print_object_desc($0E))
  $B232 CP D          ;
  $B233 RET Z         ;
  $B234 CP E          ;
@@ -6606,31 +6659,31 @@ b$B691 DEFB $FF,$FF,$00,$00,$FF,$FF,$00,$00
  $B7A1 DEFB $A8,$FD,$00,$00,$14,$91,$B7,$6E
  $B7A9 DEFB $C1,$04
 
-; Routine at B7AB
+; Room 02 : Move nasties
 ;
 ; Used by the routine at #R$AD28.
-c$B7AB LD IX,$B7A5   ;
- $B7AF CALL $B003    ;
- $B7B2 LD HL,$B7D4   ;
- $B7B5 LD ($8CB4),HL ;
-*$B7B8 PUSH BC       ;
- $B7B9 CALL $AFAA    ;
- $B7BC LD A,(IX+$00) ;
- $B7BF INC A         ;
- $B7C0 CP $04        ;
- $B7C2 JR NZ,$B7C5   ;
- $B7C4 XOR A         ;
-*$B7C5 LD (IX+$00),A ;
- $B7C8 INC IX        ;
- $B7CA CALL $93BC    ;
- $B7CD CALL $AF9F    ;
- $B7D0 POP BC        ;
- $B7D1 DJNZ $B7B8    ;
- $B7D3 RET           ;
+c$B7AB LD IX,$B7A5   ; Point #REGix at the moving object table
+ $B7AF CALL $B003    ; Set up the object data
+ $B7B2 LD HL,$B7D4   ; { Set the graphic store to #R$B7D4.
+ $B7B5 LD ($8CB4),HL ; }
+*$B7B8 PUSH BC       ; Remember the number of objects to draw.
+ $B7B9 CALL $AFAA    ; Update the positions for the next object
+ $B7BC LD A,(IX+$00) ; Get the frame ID of the object.
+ $B7BF INC A         ; Increment it.
+ $B7C0 CP $04        ; Has it overflowed?
+ $B7C2 JR NZ,$B7C5   ; Jump forward if not.
+ $B7C4 XOR A         ; Otherwise reset to 0.
+*$B7C5 LD (IX+$00),A ; Set the new frame ID.
+ $B7C8 INC IX        ; Move to the object's movement data
+ $B7CA CALL $93BC    ; Redraw the object
+ $B7CD CALL $AF9F    ; Check for collision
+ $B7D0 POP BC        ; { Loop back if there are more objects to draw.
+ $B7D1 DJNZ $B7B8    ; }
+ $B7D3 RET           ; Otherwise return.
 
-; Graphics (masked)
+; Graphics (room 02)
 ;
-; #UDGARRAY4,$47,,4;$B7D4-$BA53-1-32{32}(masked)
+; #UDGARRAY4,$47,,4;$B7D4-$B8D3-1-32{32}(room02)
 b$B7D4 DEFB $FC,$3F,$00,$00,$F8,$1F,$01,$80
  $B7DC DEFB $F8,$1F,$03,$C0,$F8,$1F,$00,$00
  $B7E4 DEFB $FC,$3F,$01,$80,$FC,$3F,$01,$80
@@ -6663,7 +6716,11 @@ b$B7D4 DEFB $FC,$3F,$00,$00,$F8,$1F,$01,$80
  $B8BC DEFB $80,$00,$1D,$B4,$C0,$01,$1F,$F8
  $B8C4 DEFB $C0,$03,$0F,$F0,$E0,$07,$00,$00
  $B8CC DEFB $FC,$3F,$01,$80,$FC,$3F,$01,$80
- $B8D4 DEFB $80,$01,$06,$68,$80,$00,$2B,$7C
+
+; Graphics (clouds)
+;
+; #UDGARRAY4,$47,,4;$B8D4-$BA53-1-32{32}(clouds)
+b$B8D4 DEFB $80,$01,$06,$68,$80,$00,$2B,$7C
  $B8DC DEFB $00,$00,$3E,$EA,$00,$00,$55,$FE
  $B8E4 DEFB $00,$00,$3F,$75,$00,$00,$7B,$FE
  $B8EC DEFB $00,$00,$37,$54,$80,$01,$00,$68
@@ -6734,8 +6791,8 @@ c$BA69 LD A,($CA8E)  ;
  $BA6F INC A         ;
  $BA70 LD ($CA8E),A  ;
  $BA73 CALL $BA5D    ;
-*$BA76 LD HL,$B8D4   ;
- $BA79 LD ($8CB4),HL ;
+*$BA76 LD HL,$B8D4   ; { Set to draw clouds (#R$B8D4)
+ $BA79 LD ($8CB4),HL ; }
  $BA7C LD IX,$C8CF   ;
  $BA80 LD B,$03      ;
 *$BA82 PUSH BC       ;
@@ -7231,8 +7288,8 @@ c$BFE4 LD A,($CA8E)  ;
  $C050 LD A,($8219)  ;
  $C053 CP $10        ;
  $C055 JR Z,$C063    ;
- $C057 LD DE,($CAA4) ;
- $C05B LD A,$10      ;
+ $C057 LD DE,($CAA4) ; Point #REGde to the inventory.
+ $C05B LD A,$10      ; Look for item #N$10 (#CALL:print_object_desc($10))
  $C05D CP D          ;
  $C05E JR Z,$C063    ;
  $C060 CP E          ;
@@ -7306,41 +7363,45 @@ c$C0BE LD A,$FF      ;
  $C0E3 CALL $AF09    ;
  $C0E6 JP $C07F      ;
 
-; Routine at C0E9
+; Store the attributes for an object
+;
+; On entry, #R$D9A6 holds the co-ordinates to put the attributes
+;
+; A Attribute to store
 ;
 ; Used by the routines at #R$A242 and #R$A353.
-c$C0E9 PUSH AF       ;
- $C0EA EXX           ;
- $C0EB LD DE,($9DA6) ;
- $C0EF SRL D         ;
+c$C0E9 PUSH AF       ; Store #REGaf.
+ $C0EA EXX           ; Use alternate registers.
+ $C0EB LD DE,($9DA6) ; Get the position in #REGde.
+ $C0EF SRL D         ; { Divide the y co-ordinate by 8
  $C0F1 SRL D         ;
- $C0F3 SRL D         ;
- $C0F5 SRL E         ;
+ $C0F3 SRL D         ; }
+ $C0F5 SRL E         ; { Divide the x co-ordinate by 8
  $C0F7 SRL E         ;
- $C0F9 SRL E         ;
- $C0FB LD H,$00      ;
- $C0FD LD L,D        ;
- $C0FE ADD HL,HL     ;
+ $C0F9 SRL E         ; }
+ $C0FB LD H,$00      ; { Put y / 8 in #REGhl.
+ $C0FD LD L,D        ; }
+ $C0FE ADD HL,HL     ; { Multiply by 32 to get an appropriate offset in the attribute buffer
  $C0FF ADD HL,HL     ;
  $C100 ADD HL,HL     ;
  $C101 ADD HL,HL     ;
- $C102 ADD HL,HL     ;
- $C103 LD D,$00      ;
- $C105 ADD HL,DE     ;
- $C106 LD DE,$5820   ;
- $C109 ADD HL,DE     ;
- $C10A PUSH HL       ;
- $C10B LD DE,$A400   ;
- $C10E ADD HL,DE     ;
- $C10F LD ($9D5C),HL ;
- $C112 LD DE,$0020   ;
+ $C102 ADD HL,HL     ; }
+ $C103 LD D,$00      ; { Add x / 8 to get the correct row.
+ $C105 ADD HL,DE     ; }
+ $C106 LD DE,$5820   ; { Add the base offset of the main screen attributes.
+ $C109 ADD HL,DE     ; }
+ $C10A PUSH HL       ; Remember this value.
+ $C10B LD DE,$A400   ; { Convert this to an offset in the game's attribute buffer (#R$FC00)
+ $C10E ADD HL,DE     ; }
+ $C10F LD ($9D5C),HL ; Store this address for the drawing routine at #R$95BB
+ $C112 LD DE,$0020   ; { Move up a row.
  $C115 AND A         ;
- $C116 SBC HL,DE     ;
- $C118 LD ($9D5E),HL ;
- $C11B LD DE,$A400   ;
+ $C116 SBC HL,DE     ; }
+ $C118 LD ($9D5E),HL ; Store this address in #R$9D5E
+ $C11B LD DE,$A400   ; { Convert this to an offset in the game's attribute buffer (#R$FC00)
  $C11E AND A         ;
- $C11F SBC HL,DE     ;
- $C121 PUSH HL       ;
+ $C11F SBC HL,DE     ; }
+ $C121 PUSH HL       ; Remember this value.
  $C122 ADD A,A       ;
  $C123 ADD A,A       ;
  $C124 LD E,A        ;
@@ -7361,30 +7422,41 @@ c$C0E9 PUSH AF       ;
  $C143 LD DE,($9D5C) ;
  $C147 LDI           ;
  $C149 LDI           ;
- $C14B EXX           ;
- $C14C POP AF        ;
- $C14D RET           ;
+ $C14B EXX           ; Restore main registers.
+ $C14C POP AF        ; { Restore #REGaf and return.
+ $C14D RET           ; }
 
-; Data block at C14E
-b$C14E DEFB $47,$05,$05,$45,$45,$42,$42,$42
- $C156 DEFB $06,$06,$06,$06,$43,$43,$43,$43
-
-; Data block at C15E
-b$C15E DEFB $07,$07,$07,$07,$47,$47,$05,$45
- $C166 DEFB $45,$45,$45,$45,$06,$06,$06,$06
- $C16E DEFB $E8,$09,$3A,$A8,$45,$45,$45,$45
- $C176 DEFB $07,$07,$07,$07,$47,$06,$47,$06
- $C17E DEFB $56,$56,$56,$56,$45,$45,$45,$45
- $C186 DEFB $47,$47,$44,$47,$46,$46,$47,$47
-
-; Data block at C18E
-b$C18E DEFB $06,$06,$06,$06,$06,$06,$06,$06
- $C196 DEFB $07,$42,$07,$42,$07,$07,$07,$07
- $C19E DEFB $03,$05,$08,$98,$06,$06,$06,$06
- $C1A6 DEFB $46,$46,$46,$46,$46,$06,$46,$06
- $C1AE DEFB $42,$46,$46,$42,$47,$47,$45,$43
- $C1B6 DEFB $46,$46,$46,$46,$47,$47,$47,$47
- $C1BE DEFB $47,$47,$06,$06,$46,$46,$46,$46
+; Attributes for objects
+b$C14E DEFB $47,$05,$05,$45 ; Object 00 (#CALL:print_object_desc(0))
+ $C152 DEFB $45,$42,$42,$42 ; Object 01 (#CALL:print_object_desc(1))
+ $C156 DEFB $06,$06,$06,$06 ; Object 02 (#CALL:print_object_desc(2))
+ $C15A DEFB $43,$43,$43,$43 ; Object 03 (#CALL:print_object_desc(3))
+ $C15E DEFB $07,$07,$07,$07 ; Object 04 (#CALL:print_object_desc(4))
+ $C162 DEFB $47,$47,$05,$45 ; Object 05 (#CALL:print_object_desc(5))
+ $C166 DEFB $45,$45,$45,$45 ; Object 06 (#CALL:print_object_desc(6))
+ $C16A DEFB $06,$06,$06,$06 ; Object 07 (#CALL:print_object_desc(7))
+ $C16E DEFB $E8,$09,$3A,$A8 ; Object 08 (#CALL:print_object_desc(8))
+ $C172 DEFB $45,$45,$45,$45 ; Object 09 (#CALL:print_object_desc(9))
+ $C176 DEFB $07,$07,$07,$07 ; Object 0A (#CALL:print_object_desc($A))
+ $C17A DEFB $47,$06,$47,$06 ; Object 0B (#CALL:print_object_desc($B))
+ $C17E DEFB $56,$56,$56,$56 ; Object 0C (#CALL:print_object_desc($C))
+ $C182 DEFB $45,$45,$45,$45 ; Object 0D (#CALL:print_object_desc($D))
+ $C186 DEFB $47,$47,$44,$47 ; Object 0E (#CALL:print_object_desc($E))
+ $C18A DEFB $46,$46,$47,$47 ; Object 0F (#CALL:print_object_desc($F))
+ $C18E DEFB $06,$06,$06,$06 ; Object 10 (#CALL:print_object_desc($10))
+ $C192 DEFB $06,$06,$06,$06 ; Object 11 (#CALL:print_object_desc($11))
+ $C196 DEFB $07,$42,$07,$42 ; Object 12 (#CALL:print_object_desc($12))
+ $C19A DEFB $07,$07,$07,$07 ; Object 13 (#CALL:print_object_desc($13))
+ $C19E DEFB $03,$05,$08,$98 ; Object 14 (#CALL:print_object_desc($14))
+ $C1A2 DEFB $06,$06,$06,$06 ; Object 15 (#CALL:print_object_desc($15))
+ $C1A6 DEFB $46,$46,$46,$46 ; Object 16 (#CALL:print_object_desc($16))
+ $C1AA DEFB $46,$06,$46,$06 ; Object 17 (#CALL:print_object_desc($17))
+ $C1AE DEFB $42,$46,$46,$42 ; Object 18 (#CALL:print_object_desc($18))
+ $C1B2 DEFB $47,$47,$45,$43 ; Object 19 (#CALL:print_object_desc($19))
+ $C1B6 DEFB $46,$46,$46,$46 ; Object 1A (#CALL:print_object_desc($1A))
+ $C1BA DEFB $47,$47,$47,$47 ; Object 1B (#CALL:print_object_desc($1B))
+ $C1BE DEFB $47,$47,$06,$06 ; Object 1C (#CALL:print_object_desc($1C))
+ $C1C2 DEFB $46,$46,$46,$46 ; Object 1D (#CALL:print_object_desc($1D))
 
 ; Graphics (Dalek game)
 ;
@@ -7426,77 +7498,75 @@ b$C1C6 DEFB $20,$E0,$2E,$F0,$21,$F8,$00,$00
  $C2D6 DEFB $79,$80,$C4,$C0,$86,$60,$81,$30
  $C2DE DEFB $81,$00,$C1,$00,$63,$00,$3E,$00
 
-; Graphics (usable objects)
-;
-; #UDGARRAY2,$47,,2;$C2E6-$C505-1-16(objects0)
-b$C2E6 DEFB $07,$80,$08,$40,$50,$E0,$10,$E0
- $C2EE DEFB $29,$70,$06,$FC,$29,$FE,$0A,$0E
- $C2F6 DEFB $12,$67,$16,$67,$16,$0F,$12,$67
- $C2FE DEFB $0A,$66,$0A,$0E,$07,$FC,$01,$F0
- $C306 DEFB $00,$00,$00,$00,$00,$00,$00,$00
- $C30E DEFB $14,$00,$2A,$00,$08,$00,$00,$00
- $C316 DEFB $0F,$01,$3F,$C6,$4F,$EC,$DF,$FC
- $C31E DEFB $FF,$FC,$5F,$EC,$3F,$C6,$0F,$01
- $C326 DEFB $03,$60,$07,$78,$06,$FC,$03,$74
- $C32E DEFB $04,$FE,$07,$FE,$03,$F4,$03,$F8
- $C336 DEFB $01,$80,$03,$7E,$03,$BE,$07,$80
- $C33E DEFB $06,$7A,$06,$F7,$06,$F7,$03,$7A
- $C346 DEFB $E0,$07,$70,$0E,$30,$0C,$27,$E4
- $C34E DEFB $1F,$F8,$33,$CC,$6D,$B6,$6D,$B6
- $C356 DEFB $61,$86,$73,$CE,$7F,$FE,$67,$E6
- $C35E DEFB $70,$0E,$3C,$3C,$3F,$FC,$0F,$F0
- $C366 DEFB $00,$00,$06,$30,$06,$70,$46,$63
- $C36E DEFB $66,$67,$66,$EE,$76,$DC,$36,$D8
- $C376 DEFB $3F,$F0,$1F,$E0,$1F,$26,$1E,$FF
- $C37E DEFB $0F,$FC,$0F,$E0,$0F,$C0,$0F,$C0
- $C386 DEFB $01,$00,$00,$C0,$00,$60,$00,$30
- $C38E DEFB $00,$18,$00,$0C,$00,$06,$60,$03
- $C396 DEFB $FF,$FF,$C3,$AB,$A9,$AB,$95,$FF
- $C39E DEFB $A9,$89,$95,$BD,$C3,$89,$FF,$FF
- $C3A6 DEFB $00,$00,$3F,$FC,$7E,$7E,$7E,$7E
- $C3AE DEFB $7C,$3E,$7C,$3E,$79,$9E,$79,$9E
- $C3B6 DEFB $73,$CE,$70,$0E,$67,$E6,$67,$E6
- $C3BE DEFB $43,$C2,$7F,$FE,$3F,$FC,$00,$00
- $C3C6 DEFB $07,$E0,$18,$F8,$21,$FC,$4F,$FE
- $C3CE DEFB $5F,$FE,$9F,$FF,$BF,$FF,$BF,$FF
- $C3D6 DEFB $BF,$FF,$BF,$FF,$BF,$F9,$5F,$FA
- $C3DE DEFB $5F,$F2,$2F,$E4,$1F,$D8,$07,$E0
- $C3E6 DEFB $00,$00,$7B,$DE,$7B,$DE,$00,$00
- $C3EE DEFB $DE,$F7,$DE,$F7,$00,$00,$7B,$DE
- $C3F6 DEFB $7B,$DE,$00,$00,$DE,$F7,$DE,$F7
- $C3FE DEFB $00,$00,$7B,$DE,$7B,$DE,$00,$00
- $C406 DEFB $00,$00,$00,$00,$00,$00,$03,$C0
- $C40E DEFB $6E,$76,$93,$C9,$FC,$3F,$FB,$DF
- $C416 DEFB $96,$69,$D4,$2F,$D4,$2F,$D6,$69
- $C41E DEFB $9B,$DF,$FC,$3F,$7F,$FE,$00,$00
- $C426 DEFB $07,$E0,$18,$18,$27,$E4,$5F,$FA
- $C42E DEFB $5F,$FA,$B6,$FD,$A5,$7D,$B5,$4D
- $C436 DEFB $B5,$55,$B5,$4D,$B6,$DD,$5F,$DA
- $C43E DEFB $5F,$FA,$27,$E4,$18,$18,$07,$E0
- $C446 DEFB $00,$00,$00,$00,$00,$00,$00,$00
- $C44E DEFB $00,$00,$00,$00,$78,$00,$CC,$00
- $C456 DEFB $85,$FF,$85,$FF,$CC,$02,$78,$07
- $C45E DEFB $00,$05,$00,$00,$00,$00,$00,$00
- $C466 DEFB $20,$08,$B0,$04,$A0,$02,$B0,$01
- $C46E DEFB $20,$00,$2D,$FC,$2B,$28,$2D,$AC
- $C476 DEFB $29,$28,$29,$AC,$20,$00,$27,$F8
- $C47E DEFB $30,$01,$20,$02,$B0,$04,$20,$08
- $C486 DEFB $07,$C0,$0E,$E0,$1F,$F0,$19,$D0
- $C48E DEFB $06,$F0,$06,$F8,$02,$F0,$02,$D0
- $C496 DEFB $0E,$F0,$06,$E0,$00,$F0,$00,$60
- $C49E DEFB $07,$70,$0B,$60,$0B,$78,$00,$00
- $C4A6 DEFB $00,$00,$00,$00,$08,$00,$18,$01
- $C4AE DEFB $00,$05,$7F,$FD,$FF,$FD,$47,$FD
- $C4B6 DEFB $38,$05,$3A,$01,$72,$00,$71,$00
- $C4BE DEFB $E0,$00,$E0,$00,$00,$00,$00,$00
- $C4C6 DEFB $00,$00,$00,$00,$00,$00,$00,$00
- $C4CE DEFB $00,$00,$00,$00,$00,$00,$00,$00
- $C4D6 DEFB $00,$00,$00,$00,$00,$80,$01,$C0
- $C4DE DEFB $00,$80,$02,$20,$07,$70,$02,$20
- $C4E6 DEFB $3C,$00,$6B,$00,$D5,$80,$AA,$C0
- $C4EE DEFB $D5,$40,$AA,$C0,$55,$40,$6A,$80
- $C4F6 DEFB $35,$A0,$1E,$60,$00,$F0,$00,$30
- $C4FE DEFB $00,$0C,$00,$0E,$00,$07,$00,$02
+; Graphics (objects 00 - 10)
+b$C2E6 DEFB $07,$80,$08,$40,$50,$E0,$10,$E0 ; { #CALL:draw_object(0)
+ $C2EE DEFB $29,$70,$06,$FC,$29,$FE,$0A,$0E ; #CALL:print_object_desc(0)
+ $C2F6 DEFB $12,$67,$16,$67,$16,$0F,$12,$67 ;
+ $C2FE DEFB $0A,$66,$0A,$0E,$07,$FC,$01,$F0 ; }
+ $C306 DEFB $00,$00,$00,$00,$00,$00,$00,$00 ; { #CALL:draw_object(1)
+ $C30E DEFB $14,$00,$2A,$00,$08,$00,$00,$00 ; #CALL:print_object_desc(1)
+ $C316 DEFB $0F,$01,$3F,$C6,$4F,$EC,$DF,$FC ;
+ $C31E DEFB $FF,$FC,$5F,$EC,$3F,$C6,$0F,$01 ; }
+ $C326 DEFB $03,$60,$07,$78,$06,$FC,$03,$74 ; { #CALL:draw_object(2)
+ $C32E DEFB $04,$FE,$07,$FE,$03,$F4,$03,$F8 ; #CALL:print_object_desc(2)
+ $C336 DEFB $01,$80,$03,$7E,$03,$BE,$07,$80 ;
+ $C33E DEFB $06,$7A,$06,$F7,$06,$F7,$03,$7A ; }
+ $C346 DEFB $E0,$07,$70,$0E,$30,$0C,$27,$E4 ; { #CALL:draw_object(3)
+ $C34E DEFB $1F,$F8,$33,$CC,$6D,$B6,$6D,$B6 ; #CALL:print_object_desc(3)
+ $C356 DEFB $61,$86,$73,$CE,$7F,$FE,$67,$E6 ;
+ $C35E DEFB $70,$0E,$3C,$3C,$3F,$FC,$0F,$F0 ; }
+ $C366 DEFB $00,$00,$06,$30,$06,$70,$46,$63 ; { #CALL:draw_object(4)
+ $C36E DEFB $66,$67,$66,$EE,$76,$DC,$36,$D8 ; #CALL:print_object_desc(4)
+ $C376 DEFB $3F,$F0,$1F,$E0,$1F,$26,$1E,$FF ;
+ $C37E DEFB $0F,$FC,$0F,$E0,$0F,$C0,$0F,$C0 ; }
+ $C386 DEFB $01,$00,$00,$C0,$00,$60,$00,$30 ; { #CALL:draw_object(5)
+ $C38E DEFB $00,$18,$00,$0C,$00,$06,$60,$03 ; #CALL:print_object_desc(5)
+ $C396 DEFB $FF,$FF,$C3,$AB,$A9,$AB,$95,$FF ;
+ $C39E DEFB $A9,$89,$95,$BD,$C3,$89,$FF,$FF ; }
+ $C3A6 DEFB $00,$00,$3F,$FC,$7E,$7E,$7E,$7E ; { #CALL:draw_object(6)
+ $C3AE DEFB $7C,$3E,$7C,$3E,$79,$9E,$79,$9E ; #CALL:print_object_desc(6)
+ $C3B6 DEFB $73,$CE,$70,$0E,$67,$E6,$67,$E6 ;
+ $C3BE DEFB $43,$C2,$7F,$FE,$3F,$FC,$00,$00 ; }
+ $C3C6 DEFB $07,$E0,$18,$F8,$21,$FC,$4F,$FE ; { #CALL:draw_object(7)
+ $C3CE DEFB $5F,$FE,$9F,$FF,$BF,$FF,$BF,$FF ; #CALL:print_object_desc(7)
+ $C3D6 DEFB $BF,$FF,$BF,$FF,$BF,$F9,$5F,$FA ;
+ $C3DE DEFB $5F,$F2,$2F,$E4,$1F,$D8,$07,$E0 ; }
+ $C3E6 DEFB $00,$00,$7B,$DE,$7B,$DE,$00,$00 ; { #CALL:draw_object(8)
+ $C3EE DEFB $DE,$F7,$DE,$F7,$00,$00,$7B,$DE ; #CALL:print_object_desc(8)
+ $C3F6 DEFB $7B,$DE,$00,$00,$DE,$F7,$DE,$F7 ;
+ $C3FE DEFB $00,$00,$7B,$DE,$7B,$DE,$00,$00 ; }
+ $C406 DEFB $00,$00,$00,$00,$00,$00,$03,$C0 ; { #CALL:draw_object(9)
+ $C40E DEFB $6E,$76,$93,$C9,$FC,$3F,$FB,$DF ; #CALL:print_object_desc(9)
+ $C416 DEFB $96,$69,$D4,$2F,$D4,$2F,$D6,$69 ;
+ $C41E DEFB $9B,$DF,$FC,$3F,$7F,$FE,$00,$00 ; }
+ $C426 DEFB $07,$E0,$18,$18,$27,$E4,$5F,$FA ; { #CALL:draw_object($A)
+ $C42E DEFB $5F,$FA,$B6,$FD,$A5,$7D,$B5,$4D ; #CALL:print_object_desc($A)
+ $C436 DEFB $B5,$55,$B5,$4D,$B6,$DD,$5F,$DA ;
+ $C43E DEFB $5F,$FA,$27,$E4,$18,$18,$07,$E0 ; }
+ $C446 DEFB $00,$00,$00,$00,$00,$00,$00,$00 ; { #CALL:draw_object($B)
+ $C44E DEFB $00,$00,$00,$00,$78,$00,$CC,$00 ; #CALL:print_object_desc($B)
+ $C456 DEFB $85,$FF,$85,$FF,$CC,$02,$78,$07 ;
+ $C45E DEFB $00,$05,$00,$00,$00,$00,$00,$00 ; }
+ $C466 DEFB $20,$08,$B0,$04,$A0,$02,$B0,$01 ; { #CALL:draw_object($C)
+ $C46E DEFB $20,$00,$2D,$FC,$2B,$28,$2D,$AC ; #CALL:print_object_desc($C)
+ $C476 DEFB $29,$28,$29,$AC,$20,$00,$27,$F8 ;
+ $C47E DEFB $30,$01,$20,$02,$B0,$04,$20,$08 ; }
+ $C486 DEFB $07,$C0,$0E,$E0,$1F,$F0,$19,$D0 ; { #CALL:draw_object($D)
+ $C48E DEFB $06,$F0,$06,$F8,$02,$F0,$02,$D0 ; #CALL:print_object_desc($D)
+ $C496 DEFB $0E,$F0,$06,$E0,$00,$F0,$00,$60 ;
+ $C49E DEFB $07,$70,$0B,$60,$0B,$78,$00,$00 ; }
+ $C4A6 DEFB $00,$00,$00,$00,$08,$00,$18,$01 ; { #CALL:draw_object($E)
+ $C4AE DEFB $00,$05,$7F,$FD,$FF,$FD,$47,$FD ; #CALL:print_object_desc($E)
+ $C4B6 DEFB $38,$05,$3A,$01,$72,$00,$71,$00 ;
+ $C4BE DEFB $E0,$00,$E0,$00,$00,$00,$00,$00 ; }
+ $C4C6 DEFB $00,$00,$00,$00,$00,$00,$00,$00 ; { #CALL:draw_object($F)
+ $C4CE DEFB $00,$00,$00,$00,$00,$00,$00,$00 ; #CALL:print_object_desc($F)
+ $C4D6 DEFB $00,$00,$00,$00,$00,$80,$01,$C0 ;
+ $C4DE DEFB $00,$80,$02,$20,$07,$70,$02,$20 ; }
+ $C4E6 DEFB $3C,$00,$6B,$00,$D5,$80,$AA,$C0 ; { #CALL:draw_object($10)
+ $C4EE DEFB $D5,$40,$AA,$C0,$55,$40,$6A,$80 ; #CALL:print_object_desc($10)
+ $C4F6 DEFB $35,$A0,$1E,$60,$00,$F0,$00,$30 ;
+ $C4FE DEFB $00,$0C,$00,$0E,$00,$07,$00,$02 ; }
 
 ; Background attribute for each room.
 ;
@@ -7509,25 +7579,23 @@ b$C506 DEFB $45,$46,$46,$46,$45,$47,$46,$46
 ; Data block at C524
 g$C524 DEFW $CA26
 
-; (Graphics (usable objects)
-;
-; #UDGARRAY2,$47,,2;$C526-$C5A5-1-16(objects1)
-b$C526 DEFB $03,$1C,$00,$7E,$03,$7F,$03,$7F
- $C52E DEFB $03,$7F,$03,$7F,$03,$7F,$03,$63
- $C536 DEFB $03,$01,$03,$00,$03,$00,$03,$00
- $C53E DEFB $03,$00,$03,$00,$03,$00,$03,$00
- $C546 DEFB $00,$00,$00,$00,$00,$00,$00,$00
- $C54E DEFB $00,$01,$00,$13,$FF,$FB,$80,$0B
- $C556 DEFB $FF,$FB,$FF,$FB,$00,$03,$00,$01
- $C55E DEFB $00,$00,$00,$00,$00,$00,$00,$00
- $C566 DEFB $07,$3E,$0B,$DF,$07,$FE,$3C,$3C
- $C56E DEFB $01,$80,$06,$B4,$07,$F4,$01,$FC
- $C576 DEFB $01,$F8,$00,$00,$01,$F8,$03,$8C
- $C57E DEFB $07,$74,$0B,$76,$1F,$0E,$00,$00
- $C586 DEFB $00,$00,$00,$00,$3F,$7C,$37,$AC
- $C58E DEFB $3A,$6C,$1F,$F8,$16,$D8,$1F,$68
- $C596 DEFB $0A,$F0,$0B,$B0,$0F,$70,$05,$E0
- $C59E DEFB $06,$A0,$05,$E0,$03,$40,$00,$00
+; Graphics (objects 12 - 15)
+b$C526 DEFB $03,$1C,$00,$7E,$03,$7F,$03,$7F ; { #CALL:draw_object($12)
+ $C52E DEFB $03,$7F,$03,$7F,$03,$7F,$03,$63 ; #CALL:print_object_desc($12)
+ $C536 DEFB $03,$01,$03,$00,$03,$00,$03,$00 ;
+ $C53E DEFB $03,$00,$03,$00,$03,$00,$03,$00 ; }
+ $C546 DEFB $00,$00,$00,$00,$00,$00,$00,$00 ; { #CALL:draw_object($13)
+ $C54E DEFB $00,$01,$00,$13,$FF,$FB,$80,$0B ; #CALL:print_object_desc($13)
+ $C556 DEFB $FF,$FB,$FF,$FB,$00,$03,$00,$01 ;
+ $C55E DEFB $00,$00,$00,$00,$00,$00,$00,$00 ; }
+ $C566 DEFB $07,$3E,$0B,$DF,$07,$FE,$3C,$3C ; { #CALL:draw_object($14)
+ $C56E DEFB $01,$80,$06,$B4,$07,$F4,$01,$FC ; #CALL:print_object_desc($14)
+ $C576 DEFB $01,$F8,$00,$00,$01,$F8,$03,$8C ; 
+ $C57E DEFB $07,$74,$0B,$76,$1F,$0E,$00,$00 ; }
+ $C586 DEFB $00,$00,$00,$00,$3F,$7C,$37,$AC ; { #CALL:draw_object($15)
+ $C58E DEFB $3A,$6C,$1F,$F8,$16,$D8,$1F,$68 ; #CALL:print_object_desc($15)
+ $C596 DEFB $0A,$F0,$0B,$B0,$0F,$70,$05,$E0 ;
+ $C59E DEFB $06,$A0,$05,$E0,$03,$40,$00,$00 ; }
 
 ; Data block at C5A6
 b$C5A6 DEFB $04,$00,$05,$0B,$00,$01,$00,$00
@@ -7541,37 +7609,35 @@ g$C5C4 DEFB $01
 ; Last visited room
 g$C5C5 DEFB $01
 
-; Graphics (usable objects)
-;
-; #UDGARRAY2,$47,,2;$C5C6-$C6AB-1-16(objects2)
-b$C5C6 DEFB $2F,$FC,$2F,$FC,$00,$00,$2F,$FC
- $C5CE DEFB $2E,$00,$2D,$FC,$2D,$30,$2D,$30
- $C5D6 DEFB $2D,$30,$2D,$00,$2D,$30,$2D,$30
- $C5DE DEFB $2D,$30,$2D,$FC,$2E,$00,$2F,$FC
- $C5E6 DEFB $80,$01,$C0,$03,$FC,$3F,$FF,$FF
- $C5EE DEFB $EF,$F7,$F7,$EF,$FB,$DF,$7D,$BE
- $C5F6 DEFB $7E,$7E,$7A,$5E,$35,$AC,$3B,$DC
- $C5FE DEFB $1F,$F8,$0F,$F0,$07,$E0,$03,$C0
- $C606 DEFB $04,$02,$0E,$07,$0A,$15,$0E,$27
- $C60E DEFB $0F,$2F,$17,$9E,$13,$FC,$10,$F0
- $C616 DEFB $20,$A0,$22,$50,$20,$A0,$02,$50
- $C61E DEFB $2E,$A0,$3E,$F0,$1C,$60,$00,$00
- $C626 DEFB $0E,$E0,$1D,$D8,$68,$1C,$62,$CA
- $C62E DEFB $86,$E6,$CE,$56,$8C,$35,$40,$63
- $C636 DEFB $C1,$E7,$EE,$86,$76,$0A,$00,$3C
- $C63E DEFB $40,$D8,$9B,$60,$5B,$00,$80,$00
- $C646 DEFB $00,$00,$FB,$F8,$E6,$0E,$D9,$F3
- $C64E DEFB $96,$1D,$95,$F3,$D6,$0E,$DB,$F9
- $C656 DEFB $1C,$07,$17,$FD,$12,$49,$1A,$4B
- $C65E DEFB $0F,$FE,$03,$F8,$00,$00,$00,$00
- $C666 DEFB $00,$00,$00,$00,$01,$C0,$02,$20
- $C66E DEFB $04,$10,$05,$D0,$04,$90,$02,$A0
- $C676 DEFB $01,$40,$00,$00,$01,$C0,$00,$00
- $C67E DEFB $01,$C0,$00,$80,$00,$00,$00,$00
- $C686 DEFB $00,$00,$00,$00,$00,$00,$00,$00
- $C68E DEFB $00,$00,$0C,$00,$16,$00,$FE,$00
- $C696 DEFB $3C,$00,$5C,$F1,$1B,$99,$1E,$6E
- $C69E DEFB $0F,$E6,$0F,$1C,$07,$F0,$00,$00
+; Graphics (objects 17 - 1D)
+b$C5C6 DEFB $2F,$FC,$2F,$FC,$00,$00,$2F,$FC ; { #CALL:draw_object($17)
+ $C5CE DEFB $2E,$00,$2D,$FC,$2D,$30,$2D,$30 ; #CALL:print_object_desc($17)
+ $C5D6 DEFB $2D,$30,$2D,$00,$2D,$30,$2D,$30 ;
+ $C5DE DEFB $2D,$30,$2D,$FC,$2E,$00,$2F,$FC ; }
+ $C5E6 DEFB $80,$01,$C0,$03,$FC,$3F,$FF,$FF ; { #CALL:draw_object($18)
+ $C5EE DEFB $EF,$F7,$F7,$EF,$FB,$DF,$7D,$BE ; #CALL:print_object_desc($18)
+ $C5F6 DEFB $7E,$7E,$7A,$5E,$35,$AC,$3B,$DC ;
+ $C5FE DEFB $1F,$F8,$0F,$F0,$07,$E0,$03,$C0 ; }
+ $C606 DEFB $04,$02,$0E,$07,$0A,$15,$0E,$27 ; { #CALL:draw_object($19)
+ $C60E DEFB $0F,$2F,$17,$9E,$13,$FC,$10,$F0 ; #CALL:print_object_desc($19)
+ $C616 DEFB $20,$A0,$22,$50,$20,$A0,$02,$50 ; 
+ $C61E DEFB $2E,$A0,$3E,$F0,$1C,$60,$00,$00 ; }
+ $C626 DEFB $0E,$E0,$1D,$D8,$68,$1C,$62,$CA ; { #CALL:draw_object($1A)
+ $C62E DEFB $86,$E6,$CE,$56,$8C,$35,$40,$63 ; #CALL:print_object_desc($1A)
+ $C636 DEFB $C1,$E7,$EE,$86,$76,$0A,$00,$3C ;
+ $C63E DEFB $40,$D8,$9B,$60,$5B,$00,$80,$00 ; }
+ $C646 DEFB $00,$00,$FB,$F8,$E6,$0E,$D9,$F3 ; { #CALL:draw_object($1B)
+ $C64E DEFB $96,$1D,$95,$F3,$D6,$0E,$DB,$F9 ; #CALL:print_object_desc($1B)
+ $C656 DEFB $1C,$07,$17,$FD,$12,$49,$1A,$4B ;
+ $C65E DEFB $0F,$FE,$03,$F8,$00,$00,$00,$00 ; }
+ $C666 DEFB $00,$00,$00,$00,$01,$C0,$02,$20 ; { #CALL:draw_object($1C)
+ $C66E DEFB $04,$10,$05,$D0,$04,$90,$02,$A0 ; #CALL:print_object_desc($1C)
+ $C676 DEFB $01,$40,$00,$00,$01,$C0,$00,$00 ;
+ $C67E DEFB $01,$C0,$00,$80,$00,$00,$00,$00 ; }
+ $C686 DEFB $00,$00,$00,$00,$00,$00,$00,$00 ; { #CALL:draw_object($1D)
+ $C68E DEFB $00,$00,$0C,$00,$16,$00,$FE,$00 ; #CALL:print_object_desc($1D)
+ $C696 DEFB $3C,$00,$5C,$F1,$1B,$99,$1E,$6E ;
+ $C69E DEFB $0F,$E6,$0F,$1C,$07,$F0,$00,$00 ; }
 
 ; Routine at C6A6
 ;
@@ -7609,8 +7675,8 @@ c$C6CE XOR A         ;
 c$C6D3 CALL $9008    ;
  $C6D6 OR A          ;
  $C6D7 RET Z         ;
- $C6D8 LD DE,($CAA4) ;
- $C6DC XOR A         ;
+ $C6D8 LD DE,($CAA4) ; Point #REGde to the inventory.
+ $C6DC XOR A         ; Look for item 00 (#CALL:print_object_desc(0))
  $C6DD CP D          ;
  $C6DE JR Z,$C6E2    ;
  $C6E0 CP E          ;
@@ -7671,7 +7737,7 @@ c$C731 LD A,($C5C4)  ; Get the current room.
  $C73B OR A          ;
  $C73C JP Z,$90CA    ;
  $C73F LD DE,($CAA4) ; Put the items carried in #REGde.
- $C743 LD A,$19      ;
+ $C743 LD A,$19      ; Look for item #N$19 (#CALL:print_object_desc($19))
  $C745 CP D          ;
  $C746 JR Z,$C74C    ;
  $C748 CP E          ;
@@ -7826,8 +7892,8 @@ c$C872 CALL $AF9F    ;
 ; Routine at C877
 ;
 ; Used by the routine at #R$C78F.
-c$C877 LD DE,($CAA4) ;
- $C87B LD A,$02      ;
+c$C877 LD DE,($CAA4) ; Point #REGde to the inventory.
+ $C87B LD A,$02      ; Look for item 02 (#CALL:print_object_desc(2))
  $C87D CP D          ;
  $C87E JR Z,$C882    ;
  $C880 CP E          ;
@@ -8021,9 +8087,9 @@ b$CA26 DEFB $05,$50,$07,$19,$10,$06,$1C,$34
 ;
 ; Used by the routines at #R$A405, #R$A491, #R$A498, #R$A4BD, #R$A4D2, #R$A528,
 ; #R$A530, #R$A579, #R$A8EE and #R$A975.
-c$CA3F LD HL,($C524) ;
- $CA42 LD A,($C5C4)  ;
- $CA45 CP (HL)       ;
+c$CA3F LD HL,($C524) ; Point #REGhl at the current data table (#R$C524)
+ $CA42 LD A,($C5C4)  ; Get the current room (#R$C5C4)
+ $CA45 CP (HL)       ; 
  $CA46 JR Z,$CA4E    ;
  $CA48 LD DE,$000D   ;
  $CA4B ADD HL,DE     ;
@@ -8067,9 +8133,62 @@ c$CA3F LD HL,($C524) ;
 b$CA8E DEFB $00,$00,$00
 
 ; Tears energy
-g$CA91 DEFB $00,$00,$00,$00,$00,$00,$00,$00
- $CA99 DEFB $00,$00,$00,$00,$00,$00,$00,$00
- $CAA1 DEFB $00,$00,$00
+g$CA91 DEFB $00
+
+; Set to 1 if Herbert is immune from collision.
+; This happens either if he has just lost a life (and is having a tantrum) or the game is in demo mode
+g$CA92 DEFB $00
+
+; Game status buffer entry at CA93
+g$CA93 DEFB $00
+
+; Game status buffer entry at CA94
+g$CA94 DEFB $00
+
+; Game status buffer entry at CA95
+g$CA95 DEFB $00
+
+; Game status buffer entry at CA96
+g$CA96 DEFB $00
+
+; Game status buffer entry at CA97
+g$CA97 DEFB $00
+
+; Game status buffer entry at CA98
+g$CA98 DEFB $00
+
+; Game status buffer entry at CA99
+g$CA99 DEFB $00
+
+; Game status buffer entry at CA9A
+g$CA9A DEFB $00
+
+; Game status buffer entry at CA9B
+g$CA9B DEFB $00
+
+; Game status buffer entry at CA9C
+g$CA9C DEFB $00
+
+; Game status buffer entry at CA9D
+g$CA9D DEFB $00
+
+; Game status buffer entry at CA9E
+g$CA9E DEFB $00
+
+; Game status buffer entry at CA9F
+g$CA9F DEFB $00
+
+; Game status buffer entry at CAA0
+g$CAA0 DEFB $00
+
+; Game status buffer entry at CAA1
+g$CAA1 DEFB $00
+
+; Game status buffer entry at CAA2
+g$CAA2 DEFB $00
+
+; Game status buffer entry at CAA3
+g$CAA3 DEFB $00
 
 ; First item carried
 g$CAA4 DEFB $00
@@ -8128,7 +8247,7 @@ g$CAB5 DEFB $00
 ; Game flag 2 - Pop gun is loaded
 g$CAB6 DEFB $00
 
-; Game flags
+; Game flag - Jack in the box is open
 g$CAB7 DEFB $00
 
 ; Game flags
@@ -8177,10 +8296,10 @@ c$CABF CALL $910D    ;
 *$CAED LD (HL),A     ;
  $CAEE INC HL        ;
  $CAEF DJNZ $CAED    ;
- $CAF1 LD A,$0A      ;
- $CAF3 LD ($CAA4),A  ;
- $CAF6 LD A,$10      ;
- $CAF8 LD ($CAA5),A  ;
+ $CAF1 LD A,$0A      ; { Set the first item to #N$0A (#CALL:print_object_desc($0A))
+ $CAF3 LD ($CAA4),A  ; }
+ $CAF6 LD A,$10      ; { Set the second item to #N$10 (#CALL:print_object_desc($10))
+ $CAF8 LD ($CAA5),A  ; }
  $CAFB LD HL,$820D   ;
  $CAFE LD B,$1E      ;
  $CB00 XOR A         ;

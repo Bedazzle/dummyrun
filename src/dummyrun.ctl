@@ -330,7 +330,7 @@ c $A346 Search for the 'nth' set of data in a buffer
 R $A346 HL The start of the buffer. Returns pointing to the data
 R $A346 D The nth item to look for
 c $A353
-b $A3C9
+w $A3C9
 c $A405
 c $A40C
 c $A410
@@ -481,7 +481,25 @@ c $CA13
 b $CA26
 c $CA3F
 b $CA8E
-b $CA91 Tears energy
+g $CA91 Tears energy
+g $CA92 Set to 1 if the game is in demo mode
+g $CA93
+g $CA94
+g $CA95
+g $CA96
+g $CA97
+g $CA98
+g $CA99
+g $CA9A
+g $CA9B
+g $CA9C
+g $CA9D
+g $CA9E
+g $CA9F
+g $CAA0
+g $CAA1
+g $CAA2
+g $CAA3
 b $CAA4 First item carried
 b $CAA5 Second item carried
 b $CAA6
