@@ -3380,15 +3380,15 @@ c$956B LD C,$46      ;
 ;
 ; Used by the routine at #R$9AF1.
 c$959D CALL $943E    ; Blank the screen.
- $95A0 LD HL,$94C7   ; Point #REGhl at the "game lost" message.
+ $95A0 LD HL,$94C7   ; Point #REGhl at the "game lost" message. (#R$94C7)
  $95A3 LD DE,$0007   ; Set the position.
  $95A6 CALL $A028    ; Print the message.
- $95A9 LD DE,$0F08   ;
- $95AC CALL $956B    ;
- $95AF LD DE,$1416   ;
- $95B2 LD HL,$9045   ;
- $95B5 CALL $A028    ;
- $95B8 CALL $9548    ;
+ $95A9 LD DE,$0F08   ; Put the position for jelly baby total in #REGde.
+ $95AC CALL $956B    ; Print the number of jelly babies
+ $95AF LD DE,$1416   ; Set the position for current time.
+ $95B2 LD HL,$9045   ; { Print current time (#R$9045).
+ $95B5 CALL $A028    ; }
+ $95B8 CALL $9548    ; Wait for a key to be pressed.
 
 ; Main entry point (after theme tune)
 ;
@@ -3413,9 +3413,9 @@ c$95BB LD SP,$0000   ; Point the stack somewhere safe.
 ; This entry point is used by the routines at #R$BDD6 and #R$C78F.
 *$95EA LD ($9D6B),HL ; Set the start position.
  $95ED CALL $A29A    ; Draw the current room.
-; This entry point is used by the routines at #R$9616 and #R$9AF1.
+; This entry point is used by the routines at #R$9616, #R$9AF1 and #R$AC60.
 *$95F0 CALL $96BE    ; Copy the sprite buffer to the screen buffer.
- $95F3 CALL $A353    ;
+ $95F3 CALL $A353    ; Draw collectable objects
  $95F6 CALL $A5A5    ; Run custom routines for the room
 ; This entry point is used by the routine at #R$A95B.
 *$95F9 CALL $9097    ;
@@ -3508,14 +3508,15 @@ c$96BE LD HL,$6D00   ; Point #REGhl at the sprite buffer
 ; See if "pause" is pressed, and act accordingly
 ;
 ; Used by the routine at #R$97C2.
-c$96CA LD A,$F7      ;
- $96CC IN A,($FE)    ;
- $96CE BIT 0,A       ;
- $96D0 RET NZ        ;
- $96D1 LD HL,$9672   ;
- $96D4 LD DE,$0A09   ;
- $96D7 CALL $A028    ;
- $96DA CALL $9548    ;
+c$96CA LD A,$F7      ; { Get keys 1-5 from the keyboard
+ $96CC IN A,($FE)    ; }
+ $96CE BIT 0,A       ; Is '1' pressed?
+ $96D0 RET NZ        ; Return if it isn't.
+; "Pause" is pressed, so do it.
+ $96D1 LD HL,$9672   ; Set the text to "I'm waiting!" (#R$9672)
+ $96D4 LD DE,$0A09   ; Set the position
+ $96D7 CALL $A028    ; Print the string
+ $96DA CALL $9548    ; Wait for a key to be pressed.
 ; This entry point is used by the routine at #R$975F.
 *$96DD CALL $92DF    ;
  $96E0 CALL $9C72    ; Put the attribute buffer on screen.
@@ -3565,9 +3566,9 @@ c$9727 LD HL,$8870   ;
 ; Function 9 : THROW SWITCH
 ;
 ; Trip the switch in the Lost and Found. Do the ending sequence.
-c$975F CALL $9C69    ;
- $9762 LD DE,$0E1A   ;
- $9765 LD HL,$DE14   ;
+c$975F CALL $9C69    ; Set to using room block graphics.
+ $9762 LD DE,$0E1A   ; Set the position of the switch lever.
+ $9765 LD HL,$DE14   ; Set to draw the switch pulled down to "ON". (#R$DE14)
  $9768 CALL $9F4E    ; Draw the block graphic.
  $976B CALL $9C72    ; Put the attribute buffer on screen.
  $976E CALL $9338    ;
@@ -3589,16 +3590,16 @@ c$975F CALL $9C69    ;
  $979B CALL $9548    ;
  $979E CALL $8E47    ;
  $97A1 CALL $943E    ; Blank the screen.
- $97A4 LD HL,$9453   ;
- $97A7 LD DE,$020A   ;
- $97AA CALL $A028    ;
- $97AD LD DE,$120F   ;
- $97B0 CALL $956B    ;
- $97B3 LD DE,$0D03   ;
- $97B6 LD HL,$9045   ;
- $97B9 CALL $A028    ;
- $97BC CALL $9548    ;
- $97BF JP $95BB      ;
+ $97A4 LD HL,$9453   ; Set #REGhl to the "Congratulations" message (#R$9453)
+ $97A7 LD DE,$020A   ; Set the position for the message.
+ $97AA CALL $A028    ; Print it.
+ $97AD LD DE,$120F   ; Set the position for jelly baby total in #REGde.
+ $97B0 CALL $956B    ; Print the number of jelly babies
+ $97B3 LD DE,$0D03   ; Set the position for current time.
+ $97B6 LD HL,$9045   ; { Print current time (#R$9045)
+ $97B9 CALL $A028    ; }
+ $97BC CALL $9548    ; Wait for a key to be pressed.
+ $97BF JP $95BB      ; Jump back to the main entry point.
 
 ; Advance the clock and end the game if we took too long
 ;
@@ -3884,9 +3885,9 @@ c$9AF1 LD A,($CA92)  ; { Is Herbert immune? (Just lost a life or demo mode) (#R$
  $9AFA RET NZ        ;
  $9AFB LD A,$01      ;
  $9AFD LD ($CA9D),A  ;
- $9B00 XOR A         ;
- $9B01 LD ($CA91),A  ;
- $9B04 CALL $808A    ;
+ $9B00 XOR A         ; { Reset tear level back to zero.
+ $9B01 LD ($CA91),A  ; }
+ $9B04 CALL $808A    ; Empty the tear display.
  $9B07 LD A,($9DAD)  ; { Draw remaining lives.
  $9B0A CALL $8D6C    ; }
  $9B0D LD HL,$9DAD   ; Point #REGhl at remaining lives.
@@ -4133,15 +4134,15 @@ c$9C25 PUSH AF       ; { Push the main registers.
 c$9C65 CALL $9C25    ; { Call the print routine and return.
  $9C68 RET           ; }
 
-; Routine at 9C69
+; Switch the drawing routine
 ;
 ; Used by the routines at #R$801C, #R$8733, #R$8755, #R$975F, #R$A29A, #R$BE93,
 ; #R$BFE4 and #R$C092.
-c$9C69 PUSH HL       ;
- $9C6A LD HL,$9C8A   ;
- $9C6D LD ($9C66),HL ;
- $9C70 POP HL        ;
- $9C71 RET           ;
+c$9C69 PUSH HL       ; Store #REGhl.
+ $9C6A LD HL,$9C8A   ; { Set the address to call at #R$9C65 to #R$9C8A.
+ $9C6D LD ($9C66),HL ; }
+ $9C70 POP HL        ; { Restore #REGhl and return.
+ $9C71 RET           ; }
 
 ; Put the attribute buffer on screen
 ;
@@ -4161,7 +4162,15 @@ c$9C72 PUSH HL       ; { Store the main registers.
  $9C88 POP HL        ;
  $9C89 RET           ; }
 
-; Routine at 9C8A
+; Alternate print routine
+;
+; This routine writes directly into the screen buffer
+;
+; HL The address of the graphic
+; A The frame number
+; D The y co-ordinate
+; E The x co-ordinate
+; C The attribute to use
 c$9C8A PUSH AF       ; { Store all main registers.}
  $9C8B PUSH HL       ;
  $9C8C PUSH BC       ;
@@ -4773,8 +4782,8 @@ c$A29A LD HL,$4070   ;
  $A2A1 LD ($CAA0),A  ;
  $A2A4 DEC A         ;
  $A2A5 LD ($9D68),A  ;
- $A2A8 CALL $9C69    ;
- $A2AB LD BC,$11FF   ; { Clear the screen buffer.
+ $A2A8 CALL $9C69    ; Switch to drawing directly in the screen buffer.
+ $A2AB LD BC,$11FF   ; { Clear the sprite buffer.
  $A2AE LD HL,$6D00   ;
  $A2B1 LD DE,$6D01   ;
  $A2B4 LD (HL),$00   ;
@@ -5014,10 +5023,10 @@ c$A410 LD DE,($CAA4) ; Point #REGde to the inventory. (#R$CAA4)
 t$A421 DEFM "HERBERT'S DUMMY RUN (C) 1985 MIKRO-GEN. HI! to CHRIS WOOD and all "
  $A463 DEFM "at Your Speccy!"
 
-; Routine for room 03
+; Routine for room 03 (Cloakroom)
 c$A472 RET           ; Nothing extra to do
 
-; Routine for room 04
+; Routine for room 04 (Tennis Room)
 c$A473 LD A,($9D67)  ;
  $A476 OR A          ;
  $A477 JR Z,$A480    ;
@@ -5032,17 +5041,17 @@ c$A473 LD A,($9D67)  ;
  $A48C CALL $AF09    ;
  $A48F JR $A47C      ;
 
-; Routine for room 05
+; Routine for room 05 (Hi-fi Department)
 c$A491 CALL $CA3F    ;
  $A494 CALL $B048    ;
  $A497 RET           ;
 
-; Routine for room 06
+; Routine for room 06 (Games Room)
 c$A498 CALL $CA3F    ;
  $A49B CALL $B315    ;
  $A49E RET           ;
 
-; Routine for room 07
+; Routine for room 07 (Blitz Game)
 c$A49F LD A,($CA8E)  ;
  $A4A2 OR A          ;
  $A4A3 RET NZ        ;
@@ -5051,22 +5060,22 @@ c$A49F LD A,($CA8E)  ;
  $A4AA LD ($CABA),HL ;
  $A4AD CALL $BE93    ;
 
-; Routine for room 08
-c$A4B0 RET           ;
+; Routine for room 08 (Lift)
+c$A4B0 RET           ; Nothing extra to do.
 
-; Routine for room 09
+; Routine for room 09 (Inside Fort)
 c$A4B1 CALL $B174    ;
  $A4B4 RET           ;
 
-; Routine for room 0A
+; Routine for room 0A (Dalek Room)
 c$A4B5 CALL $C78F    ;
  $A4B8 RET           ;
 
-; Routine for room 0B
+; Routine for room 0B (Furniture)
 c$A4B9 CALL $B491    ;
  $A4BC RET           ;
 
-; Routine for room 0C
+; Routine for room 0C (Library)
 c$A4BD CALL $CA3F    ;
  $A4C0 RET           ;
 
@@ -5081,7 +5090,7 @@ c$A4C1 LD HL,$C566   ; { Set to draw Wally
  $A4CE CALL $8CA5    ; 
  $A4D1 RET           ; }
 
-; Routine for room 0E
+; Routine for room 0E (Sports Department)
 c$A4D2 CALL $CA3F    ;
  $A4D5 XOR A         ;
  $A4D6 LD ($A67B),A  ;
@@ -5093,7 +5102,7 @@ c$A4D2 CALL $CA3F    ;
 *$A4E5 CALL $BAF0    ;
  $A4E8 RET           ;
 
-; Routine for room 0F
+; Routine for room 0F (Sandcastle)
 c$A4E9 CALL $B0B9    ;
  $A4EC CALL $B070    ;
  $A4EF LD DE,($CAA4) ; Point #REGde to the inventory.
@@ -5109,13 +5118,13 @@ c$A4E9 CALL $B0B9    ;
  $A501 CALL $80AA    ;
  $A504 RET           ;
 
-; Routine for room 10
+; Routine for room 10 (Cannont room)
 c$A505 CALL $B65D    ;
 
-; Routine for room 11
+; Routine for room 11 (Not used)
 c$A508 RET           ;
 
-; Routine for room 12
+; Routine for room 12 (Toy Fort)
 c$A509 LD A,($CA8E)  ;
  $A50C OR A          ;
  $A50D JR NZ,$A518   ;
@@ -5126,37 +5135,37 @@ c$A509 LD A,($CA8E)  ;
 *$A518 CALL $B1D9    ;
  $A51B RET           ;
 
-; Routine for room 13
+; Routine for room 13 (Beds)
 c$A51C CALL $A883    ;
 
-; Routine for room 14
+; Routine for room 14 (Bottom of lift shaft)
 c$A51F RET           ;
 
-; Routine for room 15
+; Routine for room 15 (Wine Cellar)
 c$A520 CALL $BF82    ;
  $A523 RET           ;
 
-; Routine for room 16
-c$A524 CALL $A6C0    ;
+; Routine for room 16 (Lift Shaft)
+c$A524 CALL $AC60    ;
  $A527 RET           ;
 
-; Routine for room 17
+; Routine for room 17 (Diningware)
 c$A528 CALL $CA3F    ;
  $A52B RET           ;
 
-; Routine for room 18
+; Routine for room 18 (Glove door room)
 c$A52C CALL $A770    ;
  $A52F RET           ;
 
-; Routine for room 19
+; Routine for room 19 (Main entrance)
 c$A530 CALL $CA3F    ;
  $A533 RET           ;
 
-; Routine for room 1A
+; Routine for room 1A (Front door)
 c$A534 CALL $BA69    ;
  $A537 RET           ;
 
-; Routine for room 1B
+; Routine for room 1B (Shooting Gallery)
 c$A538 LD DE,($CAA4) ; Point #REGde to the inventory.
  $A53C LD A,$13      ; Look for item #N$13 (#CALL:print_object_desc($13))
  $A53E CP D          ;
@@ -5188,12 +5197,12 @@ c$A538 LD DE,($CAA4) ; Point #REGde to the inventory.
  $A575 LD ($CAA6),A  ;
  $A578 RET           ;
 
-; Routine for room 1C
+; Routine for room 1C (Lights)
 c$A579 CALL $CA3F    ;
  $A57C CALL $A79B    ;
  $A57F RET           ;
 
-; Routine for room 1D
+; Routine for room 1D (Swimming Pool)
 c$A580 LD A,$01      ;
  $A582 LD ($CAA0),A  ;
  $A585 CALL $AE2E    ;
@@ -5404,8 +5413,8 @@ c$A770 LD IX,$A76A   ;
 ; Used by the routine at #R$A579.
 c$A79B LD IX,$A700   ;
  $A79F CALL $B003    ;
- $A7A2 LD HL,$C1C6   ;
- $A7A5 LD ($8CB4),HL ;
+ $A7A2 LD HL,$C1C6   ; { Set the graphic store to #R$C1C6.
+ $A7A5 LD ($8CB4),HL ; }
 *$A7A8 PUSH BC       ;
  $A7A9 CALL $AFAA    ;
  $A7AC LD A,($9DCF)  ;
@@ -5690,62 +5699,187 @@ b$AAA6 DEFB $40,$48,$80,$49,$00,$92,$00,$A4
  $AB7E DEFB $FE,$01,$73,$7D,$03,$FE,$00,$3D
  $AB86 DEFB $98,$03,$FE,$02,$AF,$A8,$FD,$FE
  $AB8E DEFB $00,$4E,$98,$FD,$FE,$01,$B4,$A8
- $AB96 DEFB $FD,$FE,$02,$B8,$38,$38,$C8,$28
- $AB9E DEFB $71,$AB,$99,$AB,$08,$DD,$21,$9D
- $ABA6 DEFB $AB,$CD,$03,$B0,$21,$B1,$AA,$22
- $ABAE DEFB $B4,$8C,$C5,$CD,$AA,$AF,$3A,$D4
- $ABB6 DEFB $9D,$FE,$02,$38,$31,$26,$B0,$DD
- $ABBE DEFB $74,$FD,$3E,$FE,$DD,$77,$FF,$DD
- $ABC6 DEFB $7E,$00,$FE,$04,$30,$33,$CD,$0A
- $ABCE DEFB $AE,$E6,$7F,$FE,$78,$30,$F7,$C6
- $ABD6 DEFB $3C,$6F,$DD,$75,$FC,$CD,$0A,$AE
- $ABDE DEFB $E6,$03,$3C,$47,$CD,$0A,$AE,$E6
- $ABE6 DEFB $03,$3C,$90,$DD,$77,$FE,$DD,$7E
- $ABEE DEFB $00,$FE,$04,$30,$0C,$3C,$DD,$77
- $ABF6 DEFB $00,$FE,$04,$20,$04,$AF,$DD,$77
- $ABFE DEFB $00,$DD,$23,$CD,$A5,$8C,$CD,$9F
- $AC06 DEFB $AF,$C1,$10,$A6,$C9,$00,$01,$02
- $AC0E DEFB $03,$04,$05,$06,$19,$1A,$1B,$1C
- $AC16 DEFB $1D,$1E,$1F,$3A,$00,$6D,$67,$3A
- $AC1E DEFB $20,$6D,$6F
+ $AB96 DEFB $FD,$FE,$02,$B8,$38,$38,$C8
+ 
+; Room 16 movement data
+b$AB9D DEFB $28,$71,$AB,$99,$AB,$08
 
-; Data block at AC21
-b$AC21 DEFB $E5,$06,$7E,$11,$20,$00,$DD,$21
- $AC29 DEFB $00,$6D,$DD,$4E,$40,$C5,$06,$0E
- $AC31 DEFB $21,$0B,$AC,$7E,$23,$32,$3B,$AC
- $AC39 DEFB $DD,$71,$00,$10,$F6,$C1,$DD,$19
- $AC41 DEFB $10,$E8,$D1,$06,$0E,$21,$0B,$AC
- $AC49 DEFB $DD,$21,$C0,$7C,$7E,$23,$32,$59
- $AC51 DEFB $AC,$C6,$20,$32,$5C,$AC,$DD,$72
- $AC59 DEFB $00,$DD,$73,$00,$10,$EE,$C9,$3E
- $AC61 DEFB $01,$32,$B4,$CA,$32,$9E,$CA,$CD
- $AC69 DEFB $19,$AC,$CD,$BE,$96,$CD,$A3,$AB
- $AC71 DEFB $CD,$97,$90,$3A,$6B,$9D,$FE,$40
- $AC79 DEFB $30,$02,$3E,$40,$FE,$B0,$38,$02
- $AC81 DEFB $3E,$B0,$32,$6B,$9D,$21,$F1,$A9
- $AC89 DEFB $22,$B4,$8C,$2A,$6B,$9D,$22,$A6
- $AC91 DEFB $9D,$AF,$CD,$A5,$8C,$7C,$C6,$10
- $AC99 DEFB $32,$A7,$9D,$3E,$01,$CD,$A5,$8C
- $ACA1 DEFB $7D,$D6,$08,$6F,$7C,$D6,$20,$67
- $ACA9 DEFB $22,$A6,$9D,$3E,$02,$CD,$A5,$8C
- $ACB1 DEFB $7D,$C6,$10,$32,$A6,$9D,$3E,$03
- $ACB9 DEFB $CD,$A5,$8C,$7C,$C6,$10,$67,$22
- $ACC1 DEFB $A6,$9D,$3E,$04,$CD,$A5,$8C,$7D
- $ACC9 DEFB $C6,$10,$32,$A6,$9D,$3E,$05,$CD
- $ACD1 DEFB $A5,$8C,$CD,$F1,$9A,$CD,$C2,$97
- $ACD9 DEFB $3A,$90,$CA,$3D,$32,$90,$CA,$20
- $ACE1 DEFB $86,$32,$8E,$CA,$3E,$14,$32,$C4
- $ACE9 DEFB $C5,$CD,$69,$9C,$11,$00,$06,$21
- $ACF1 DEFB $A0,$E1,$CD,$4E,$9F,$11,$19,$06
- $ACF9 DEFB $21,$A0,$E1,$CD,$4E,$9F,$11,$00
- $AD01 DEFB $16,$21,$FC,$88,$CD,$4E,$9F,$11
- $AD09 DEFB $06,$0E,$21,$1B,$E5,$CD,$4E,$9F
- $AD11 DEFB $11,$18,$0E,$21,$2C,$E5,$CD,$4E
- $AD19 DEFB $9F,$CD,$72,$9C,$3E,$38,$32,$6C
+; Routine at ABA3
+;
+; Used by the routine at #R$AC19.
+c$ABA3 LD IX,$AB9D   ; { Set the movement data to #R$AB9D
+ $ABA7 CALL $B003    ; }
+ $ABAA LD HL,$AAB1   ;
+ $ABAD LD ($8CB4),HL ;
+*$ABB0 PUSH BC       ;
+ $ABB1 CALL $AFAA    ;
+ $ABB4 LD A,($9DD4)  ;
+ $ABB7 CP $02        ;
+ $ABB9 JR C,$ABEC    ;
+ $ABBB LD H,$B0      ;
+ $ABBD LD (IX-$03),H ;
+ $ABC0 LD A,$FE      ;
+ $ABC2 LD (IX-$01),A ;
+ $ABC5 LD A,(IX+$00) ;
+ $ABC8 CP $04        ;
+ $ABCA JR NC,$ABFF   ;
+*$ABCC CALL $AE0A    ;
+ $ABCF AND $7F       ;
+ $ABD1 CP $78        ;
+ $ABD3 JR NC,$ABCC   ;
+ $ABD5 ADD A,$3C     ;
+ $ABD7 LD L,A        ;
+ $ABD8 LD (IX-$04),L ;
+ $ABDB CALL $AE0A    ;
+ $ABDE AND $03       ;
+ $ABE0 INC A         ;
+ $ABE1 LD B,A        ;
+ $ABE2 CALL $AE0A    ;
+ $ABE5 AND $03       ;
+ $ABE7 INC A         ;
+ $ABE8 SUB B         ;
+ $ABE9 LD (IX-$02),A ;
+*$ABEC LD A,(IX+$00) ;
+ $ABEF CP $04        ;
+ $ABF1 JR NC,$ABFF   ;
+ $ABF3 INC A         ;
+ $ABF4 LD (IX+$00),A ;
+ $ABF7 CP $04        ;
+ $ABF9 JR NZ,$ABFF   ;
+ $ABFB XOR A         ;
+ $ABFC LD (IX+$00),A ;
+*$ABFF INC IX        ;
+ $AC01 CALL $8CA5    ;
+ $AC04 CALL $AF9F    ;
+ $AC07 POP BC        ;
+ $AC08 DJNZ $ABB0    ;
+ $AC0A RET           ;
+ 
+; Data block at AC0B
+b$AC0B DEFB $00,$01,$02,$03,$04,$05,$06,$19
+ $AC13 DEFB $1A,$1B,$1C,$1D,$1E,$1F
 
+; Routine at AC19
+;
+; Used by the routine at #R$AC60.
+c$AC19 LD A,($6D00)  ;
+ $AC1C LD H,A        ;
+ $AC1D LD A,($6D20)  ;
+ $AC20 LD L,A        ;
+ $AC21 PUSH HL       ;
+ $AC22 LD B,$7E      ;
+ $AC24 LD DE,$0020   ;
+ $AC27 LD IX,$6D00   ;
+*$AC2B LD C,(IX+$40) ;
+ $AC2E PUSH BC       ;
+ $AC2F LD B,$0E      ;
+ $AC31 LD HL,$AC0B   ;
+*$AC34 LD A,(HL)     ;
+ $AC35 INC HL        ;
+ $AC36 LD ($AC3B),A  ;
+ $AC39 LD (IX+$00),C ;
+ $AC3C DJNZ $AC34    ;
+ $AC3E POP BC        ;
+ $AC3F ADD IX,DE     ;
+ $AC41 DJNZ $AC2B    ;
+ $AC43 POP DE        ;
+ $AC44 LD B,$0E      ;
+ $AC46 LD HL,$AC0B   ;
+ $AC49 LD IX,$7CC0   ;
+*$AC4D LD A,(HL)     ;
+ $AC4E INC HL        ;
+ $AC4F LD ($AC59),A  ;
+ $AC52 ADD A,$20     ;
+ $AC54 LD ($AC5C),A  ;
+ $AC57 LD (IX+$00),D ;
+ $AC5A LD (IX+$00),E ;
+ $AC5D DJNZ $AC4D    ;
+ $AC5F RET           ;
 
-; Data block at AD21
-b$AD21 DEFB $9D,$CD,$D1,$A5,$C3,$F0,$95
+; Fall down the lift shaft
+;
+; Used by the routine at #R$A524
+c$AC60 LD A,$01      ;
+ $AC62 LD ($CAB4),A  ;
+ $AC65 LD ($CA9E),A  ;
+*$AC68 CALL $AC19    ;
+ $AC6B CALL $96BE    ;
+ $AC6E CALL $ABA3    ;
+ $AC71 CALL $9097    ;
+ $AC74 LD A,($9D6B)  ;
+ $AC77 CP $40        ;
+ $AC79 JR NC,$AC7D   ;
+ $AC7B LD A,$40      ;
+*$AC7D CP $B0        ;
+ $AC7F JR C,$AC83    ;
+ $AC81 LD A,$B0      ;
+*$AC83 LD ($9D6B),A  ;
+ $AC86 LD HL,$A9F1   ;
+ $AC89 LD ($8CB4),HL ;
+ $AC8C LD HL,($9D6B) ;
+ $AC8F LD ($9DA6),HL ;
+ $AC92 XOR A         ; { Put object 0 in the sprite buffer.
+ $AC93 CALL $8CA5    ; }
+ $AC96 LD A,H        ;
+ $AC97 ADD A,$10     ;
+ $AC99 LD ($9DA7),A  ;
+ $AC9C LD A,$01      ; { Put object 1 in the sprite buffer.
+ $AC9E CALL $8CA5    ; }
+ $ACA1 LD A,L        ;
+ $ACA2 SUB $08       ;
+ $ACA4 LD L,A        ;
+ $ACA5 LD A,H        ;
+ $ACA6 SUB $20       ;
+ $ACA8 LD H,A        ;
+ $ACA9 LD ($9DA6),HL ;
+ $ACAC LD A,$02      ; { Put object 2 in the sprite buffer.
+ $ACAE CALL $8CA5    ; }
+ $ACB1 LD A,L        ;
+ $ACB2 ADD A,$10     ;
+ $ACB4 LD ($9DA6),A  ;
+ $ACB7 LD A,$03      ; { Put object 3 in the sprite buffer.
+ $ACB9 CALL $8CA5    ; }
+ $ACBC LD A,H        ;
+ $ACBD ADD A,$10     ;
+ $ACBF LD H,A        ;
+ $ACC0 LD ($9DA6),HL ;
+ $ACC3 LD A,$04      ; { Put object 4 in the sprite buffer.
+ $ACC5 CALL $8CA5    ; }
+ $ACC8 LD A,L        ;
+ $ACC9 ADD A,$10     ;
+ $ACCB LD ($9DA6),A  ;
+ $ACCE LD A,$05      ; { Put object 5 in the sprite buffer.
+ $ACD0 CALL $8CA5    ; }
+ $ACD3 CALL $9AF1    ;
+ $ACD6 CALL $97C2    ;
+ $ACD9 LD A,($CA90)  ;
+ $ACDC DEC A         ;
+ $ACDD LD ($CA90),A  ;
+ $ACE0 JR NZ,$AC68   ;
+ $ACE2 LD ($CA8E),A  ;
+ $ACE5 LD A,$14      ; { Set the current room (#R$C5C4) to #N$14.
+ $ACE7 LD ($C5C4),A  ; }
+ $ACEA CALL $9C69    ; Switch to drawing directly on the screen buffer.
+ $ACED LD DE,$0600   ; { Print the left wall.
+ $ACF0 LD HL,$E1A0   ;
+ $ACF3 CALL $9F4E    ; }
+ $ACF6 LD DE,$0619   ; { Print the right wall.
+ $ACF9 LD HL,$E1A0   ;
+ $ACFC CALL $9F4E    ; }
+ $ACFF LD DE,$1600   ; Set the position to put the floor.
+ $AD02 LD HL,$88FC   ; Point #REGhl to the lift shaft floor graphics.
+ $AD05 CALL $9F4E    ; Draw this.
+ $AD08 LD DE,$0E06   ; { Print the left door.
+ $AD0B LD HL,$E51B   ;
+ $AD0E CALL $9F4E    ; }
+ $AD11 LD DE,$0E18   ; { Print the right door.
+ $AD14 LD HL,$E52C   ; 
+ $AD17 CALL $9F4E    ; }
+ $AD1A CALL $9C72    ; Put the attribute buffer on screen.
+ $AD1D LD A,$38      ; { Set the Y position to #N$38,
+ $AD1F LD ($9D6C),A  ; making Herbert fall down to the floor. }
+ $AD22 CALL $A5D1    ; Reset some flags.
+ $AD25 JP $95F0      ; Jump back into the main game loop.
 
 ; Room 02 : Open the jack in the box if Herbert is standing on it
 ;
@@ -6180,14 +6314,16 @@ c$B003 LD A,($CA8E)  ; { Have the moving objects already been set up? (#R$CA8E)
 ; Data block at B02E
 b$B02E DEFB $08,$A0,$02,$FE,$01,$78,$6E,$FE
  $B036 DEFB $FE,$01,$78,$A8,$02,$FE,$00,$C8
- $B03E DEFB $48,$FE,$FE,$00,$14,$2E,$B0,$6E
- $B046 DEFB $C1,$04
+ $B03E DEFB $48,$FE,$FE,$00
 
-; Routine at B048
+; Room 5 movement data
+b$B042 DEFB $14,$2E,$B0,$6E,$C1,$04
+
+; Room 5 (Hi-Fi Department) : Move objects
 ;
 ; Used by the routine at #R$A491.
-c$B048 LD IX,$B042   ;
- $B04C CALL $B003    ;
+c$B048 LD IX,$B042   ; { Set the movement data to #R$B042.
+ $B04C CALL $B003    ; }
  $B04F LD HL,$9CBE   ;
  $B052 LD ($8CB4),HL ;
 *$B055 PUSH BC       ;
@@ -6305,7 +6441,7 @@ b$B190 DEFB $FF,$FF,$00,$00,$FF,$FF,$00,$00
  $B1D0 DEFB $32,$98,$02,$00,$02,$76,$04,$3A
  $B1D8 DEFB $A8
 
-; Routine at B1D9
+; Room 12 : Move objects
 ;
 ; Used by the routine at #R$A509.
 c$B1D9 LD IX,$B1D0   ;
@@ -6340,18 +6476,18 @@ c$B1D9 LD IX,$B1D0   ;
  $B21F LD ($9DA6),A  ;
  $B222 POP AF        ;
  $B223 CALL $932E    ;
-*$B226 LD A,($CAB6)  ;
- $B229 OR A          ;
- $B22A JR Z,$B236    ;
+*$B226 LD A,($CAB6)  ; {Is the pop gun loaded?
+ $B229 OR A          ; }
+ $B22A JR Z,$B236    ; If not, the gun cannot stop the soldiers.
  $B22C LD DE,($CAA4) ; Put the items carried in #REGde.
  $B230 LD A,$0E      ; Look for item #N$0E (#CALL:print_object_desc($0E))
- $B232 CP D          ;
- $B233 RET Z         ;
- $B234 CP E          ;
- $B235 RET Z         ;
-*$B236 LD B,$0A      ;
- $B238 CALL $8158    ;
- $B23B RET           ;
+ $B232 CP D          ; Is it the first item?
+ $B233 RET Z         ; Return if so.
+ $B234 CP E          ; Is it the second item?
+ $B235 RET Z         ; Return if so.
+*$B236 LD B,$0A      ; Otherwise, increase tears by 10 to stop getting past the soldiers.
+ $B238 CALL $8158    ; {Increment tears and return.
+ $B23B RET           ; }
 
 ; Data block at B23C
 b$B23C DEFB $00,$00,$00,$00,$00,$00,$00,$00
@@ -7706,8 +7842,8 @@ c$C6D3 CALL $9008    ;
  $C708 JR C,$C70C    ;
  $C70A LD H,$A8      ;
 *$C70C LD ($9DA6),HL ;
- $C70F LD HL,$C1C6   ;
- $C712 LD ($8CB4),HL ;
+ $C70F LD HL,$C1C6   ; { Set the graphics store to #R$C1C6. 
+ $C712 LD ($8CB4),HL ; }
  $C715 POP AF        ;
  $C716 CALL $8CA5    ;
  $C719 RET           ;
@@ -9091,9 +9227,13 @@ b$DDEE DEFB $FB,$FE,$D9,$FE,$4F,$00,$01,$02
  $DDF6 DEFB $03,$79,$01,$F8,$01,$04,$08,$0C
  $DDFE DEFB $0D,$0E,$0F,$7C,$FE,$F8,$01,$07
  $DE06 DEFB $0B,$FE,$4C,$7B,$FE,$05,$06,$7B
- $DE0E DEFB $01,$FE,$4E,$09,$0A,$FF,$FB,$FE
- $DE16 DEFB $D9,$FE,$4E,$10,$11,$7B,$01,$FE
- $DE1E DEFB $4A,$12,$13,$FF
+ $DE0E DEFB $01,$FE,$4E,$09,$0A,$FF
+ 
+; Room block graphics 61 (alt)
+;
+; #CALL:print_block_data( #PC, block_61a)
+b$DE14 DEFB $FB,$FE,$D9,$FE,$4E,$10,$11,$7B
+ $DE1C DEFB $01,$FE,$4A,$12,$13,$FF
 
 ; Room block graphics 56
 ;

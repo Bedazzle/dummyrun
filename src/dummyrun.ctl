@@ -297,7 +297,6 @@ b $9D66 Currently active lift button
 b $9D6B Current position
 b $9D6D
 b $9D9A
-
 g $9DA6 X co-ordinate
 g $9DA7 Y pointer to screen row (?)
 W $9DA7
@@ -383,8 +382,11 @@ c $A9CA
 b $A9F1
 b $AA22
 b $AAA6
-b $AC21
-b $AD21
+b $AB9D Room 16 movement data
+c $ABA3
+b $AC0B
+c $AC19
+c $AC60
 c $AD28
 c $AD84
 b $ADA1
@@ -404,6 +406,7 @@ c $AF9F
 c $AFAA
 c $B003
 b $B02E
+b $B042 Room 5 movement data
 c $B048
 b $B068
 c $B070
