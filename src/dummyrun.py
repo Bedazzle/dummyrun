@@ -89,7 +89,7 @@ class HerbertHtmlWriter(HtmlWriter):
             return str( op )
 
     def print_call( self, op ):
-        calls = { 0: 'HANDLE_BOXES', 3: 'REFRESH_INVENTORY', 8: 'FIRE_CANNON', 9: 'THROW_SWITCH', 11: 'PULL_ROPE', 12: 'REFRESH_SWITCH'}
+        calls = { 0: 'HANDLE_BOXES', 3: 'REFRESH_INVENTORY', 8: 'FIRE_CANNON', 9: 'THROW_SWITCH', 11: 'PULL_ROPE', 12: 'HIGH_JUMP'}
 
         return calls[ op ]
 

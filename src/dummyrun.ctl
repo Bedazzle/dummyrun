@@ -365,6 +365,7 @@ c $A5FE
 b $A60B
 c $A68C
 b $A6D0
+b $A700 Room 1B movement table
 c $A706
 b $A722
 c $A770
@@ -445,6 +446,10 @@ b $BE53 Graphics : Herbert (bomb game)
 D $BE53 #UDGTABLE { #UDGARRAY2,$46,,2;$BE53-$BE72-1-16(herbertb0) | #UDGARRAY2,$46,,2;$BE73-$BE92-1-16(herbertb1) } TABLE#
 c $BE93
 b $BF0A
+w $BF0A Room 04 : Bricks
+B $BF0A,$5D,1
+b $BF67
+b $BF70
 c $BF82
 c $BFAD
 c $BFC7
