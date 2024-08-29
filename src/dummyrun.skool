@@ -5100,8 +5100,8 @@ w$A3C9 DEFW $A405   ; Room 00 (Gym)
  $A403 DEFW $A580   ; Room 1D (Swimming pool)
 
 ; Routine for room 00 (Gym)
-c$A405 CALL $CA3F    ;
- $A408 CALL $A8EE    ;
+c$A405 CALL $CA3F    ; Check for food
+ $A408 CALL $A8EE    ; Move objects
  $A40B RET           ;
 
 ; Routine for room 01 (Gardening)
@@ -5615,16 +5615,16 @@ c$A8B0 LD A,$01      ; { Set "no extended crying" flag (#R$CA9E)
 *$A8E5 CALL $97C2    ; Update a frame
  $A8E8 JR $A8B0      ; 
 
-; Routine at A8EA
+; Room 00 : Move objects (copy)
 ;
 ; Used by the routine at #R$A8EE.
-c$A8EA CALL $B4DA    ;
- $A8ED RET           ;
+c$A8EA CALL $B4DA    ; { Call the main routine 
+ $A8ED RET           ; }
 
-; Routine at A8EE
+; Room 00 : Run the room
 ;
 ; Used by the routine at #R$A405.
-c$A8EE LD A,($9D6B)  ;
+c$A8EE LD A,($9D6B)  ; Get the current position (#R$9D6B)
  $A8F1 SUB $49       ;
  $A8F3 CP $FE        ;
  $A8F5 JR C,$A8EA    ;
@@ -5637,7 +5637,7 @@ c$A8EE LD A,($9D6B)  ;
  $A906 LD ($9D6B),A  ;
  $A909 CALL $92C0    ; Update attributes
 ; This entry point is used by the routine at #R$A975.
-*$A90C CALL $ADE1    ;
+*$A90C CALL $ADE1    ; Get input
  $A90F LD A,($CAB2)  ;
  $A912 LD B,A        ;
  $A913 LD A,($CAB3)  ;
@@ -5688,7 +5688,7 @@ c$A965 LD HL,($9D6B) ;
  $A970 CALL $92C0    ; Update attributes
  $A973 JR $A95B      ;
 
-; Routine at A975
+; Run Herbert on the ropes
 ;
 ; Used by the routine at #R$A8EE.
 c$A975 CALL $ADE1    ;
@@ -5697,7 +5697,7 @@ c$A975 CALL $ADE1    ;
  $A97E CALL $ADE1    ;
  $A981 CALL $CA3F    ;
  $A984 CALL $B4DA    ;
- $A987 CALL $A9CA    ;
+ $A987 CALL $A9CA    ; Turn the cheat mode on if the right keys are pressed!
  $A98A LD A,($CAB2)  ;
  $A98D LD B,A        ;
  $A98E LD A,($CAB3)  ;
@@ -5721,35 +5721,43 @@ c$A975 CALL $ADE1    ;
  $A9B9 CALL $97C2    ;
  $A9BC JP $A90C      ;
 
-; Data block at A9BF
-b$A9BF DEFB $FE,$08,$BF,$10,$FB,$04,$FD,$00
- $A9C7 DEFB $FB,$10,$FF
+; Block of keypresses needed to activate cheat mode
+b$A9BF DEFB $FE,$08  ; 'C'
+ $A9C1 DEFB $BF,$10  ; 'H'
+ $A9C3 DEFB $FB,$04  ; 'E'
+ $A9C5 DEFB $FD,$00  ; any value (this is a bug, should be 01 = 'A')
+ $A9C7 DEFB $FB,$10  ; 'T'
+ $A9C9 DEFB $FF      ; End marker
 
-; Routine at A9CA
+; Activate the cheat mode
 ;
 ; Used by the routine at #R$A975.
-c$A9CA LD HL,$A9BF   ;
-*$A9CD LD A,(HL)     ;
- $A9CE CP $FF        ;
- $A9D0 JR Z,$A9DB    ;
- $A9D2 INC HL        ;
- $A9D3 LD C,(HL)     ;
- $A9D4 INC HL        ;
- $A9D5 IN A,($FE)    ;
- $A9D7 AND C         ;
- $A9D8 JR Z,$A9CD    ;
- $A9DA RET           ;
-*$A9DB LD A,($9B11)  ;
- $A9DE OR A          ;
- $A9DF RET Z         ;
- $A9E0 XOR A         ;
- $A9E1 LD ($9B11),A  ;
- $A9E4 INC A         ;
- $A9E5 CALL $AF09    ;
- $A9E8 CALL $90F7    ;
- $A9EB LD A,$01      ;
+; The cheat mode is active when the player
+; presses 'C','H','E','A' and 'T' down at once.
+c$A9CA LD HL,$A9BF   ; Point #REGhl to the working buffer (#R$A9BF)
+*$A9CD LD A,(HL)     ; Get the part of the keyboard to scan
+ $A9CE CP $FF        ; Is it a terminator symbol?
+ $A9D0 JR Z,$A9DB    ; Jump forward if it is
+ $A9D2 INC HL        ; Move to the next entry in the buffer
+ $A9D3 LD C,(HL)     ; Get the expected bitmask
+ $A9D4 INC HL        ; Move to the next entry in the buffer
+ $A9D5 IN A,($FE)    ; Read the keyboard
+ $A9D7 AND C         ; Check the expected values
+ $A9D8 JR Z,$A9CD    ; If they match, continue to scan the rest
+ $A9DA RET           ; Otherwise, return
+; The required keys are held down, so activate the cheat!
+*$A9DB LD A,($9B11)  ; { Has the cheat mode already been enabled?
+ $A9DE OR A          ; }
+ $A9DF RET Z         ; Return if it has
+; The cheat mode has been enabled
+ $A9E0 XOR A         ; { Remove the code to decrement number of lives. (#R$9AF1)
+ $A9E1 LD ($9B11),A  ; }
+ $A9E4 INC A         ; Set #REGa to 1 to enable some flags
+ $A9E5 CALL $AF09    ; Play a sound effect
+ $A9E8 CALL $90F7    ; Pause
+ $A9EB LD A,$01      ; { Play the sound effect again and return
  $A9ED CALL $AF09    ;
- $A9F0 RET           ;
+ $A9F0 RET           ; }
 
 ; Herbert holding parachute
 b$A9F1 DEFB $03,$60,$07,$70,$0E,$38,$0E,$18
@@ -6065,7 +6073,7 @@ b$ADA1 DEFB $00,$00,$00,$00,$00,$00,$03,$C0
  $ADD1 DEFB $07,$E0,$00,$00,$1F,$F0,$00,$00
  $ADD9 DEFB $07,$C0,$00,$00,$1F,$F0,$00,$00
 
-; Routine at ADE1
+; Check for input on the gym ropes
 ;
 ; Used by the routines at #R$A8EE and #R$A975.
 c$ADE1 CALL $8F92    ; { Has Herbert moved right?
