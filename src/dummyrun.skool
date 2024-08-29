@@ -1242,22 +1242,21 @@ b$820B DEFB $80,$50,$00 ; Room 00
 
 ; Game flag table
 ;
-; This table contains pairs of pointers to a routine that should
-; .
-; be run from this offset, and a memory location with a flag of that value
-w$8265 DEFW $8701 ; Flag 0
+; This table contains either a flag to retrieve a value, or a function
+; to execute
+w$8265 DEFW $8701 ; Function 0 - Handle boxes in the cloakroom
  $8267 DEFW $CAA8 ; Flag 1 - Ten pence is real / chocolate
  $8269 DEFW $CAB6 ; Flag 2 - Pop gun is loaded
- $826B DEFW $A242 ; Flag 3
+ $826B DEFW $A242 ; Function 3 - Print the inventory
  $826D DEFW $CAB9 ; Flag 4 - Catapult is loaded
  $826F DEFW $CAB5 ; Flag 5 - Torch is working
- $8271 DEFW $9D64 ; Flag 6 - All ducks shot
+ $8271 DEFW $9D64 ; Flag 6 - Number of ducks shot
  $8273 DEFW $CAA7 ; Flag 7 - Cannon is loaded
- $8275 DEFW $8755 ; Flag 8
- $8277 DEFW $975F ; Flag 9
+ $8275 DEFW $8755 ; Function 8 - Fire the cannon
+ $8277 DEFW $975F ; Function 9 - Throw the switch
  $8279 DEFW $CAAC ; Flag A - Rope is pulled
- $827B DEFW $8733 ; Flag B
- $827D DEFW $8729 ; Flag C
+ $827B DEFW $8733 ; Function B - Pull the rope
+ $827D DEFW $8729 ; Function C - High jump in lost and found
 
 ; Room logic : 00 (Gym)
 ;
@@ -3486,37 +3485,38 @@ c$9616 LD A,($CAAD)  ; { Is the game in demo mode? (#R$CAAD)
  $9620 CP $FF        ; }
  $9622 JR NZ,$95BB   ; If a key was pressed, go back to the main loop
 ; The game is in demo mode, so run a frame of it
- $9624 LD A,($CAAD)  ;
- $9627 CP $01        ;
- $9629 JR NZ,$9633   ;
- $962B LD A,($9D6B)  ;
- $962E CP $0A        ;
- $9630 JR C,$963B    ;
- $9632 RET           ;
-*$9633 LD A,($9D6B)  ;
- $9636 CP $E6        ;
- $9638 JR NC,$963B   ;
- $963A RET           ;
-*$963B LD IX,($9670) ;
- $963F LD A,(IX+$00) ;
- $9642 CP $FF        ;
- $9644 JP Z,$95BB    ;
- $9647 LD ($C5C4),A  ;
- $964A LD L,(IX+$01) ;
- $964D LD H,$98      ;
- $964F LD ($9D6B),HL ;
- $9652 LD A,(IX+$02) ;
- $9655 LD ($CAAD),A  ;
- $9658 CALL $AFFA    ;
- $965B DEC IX        ;
- $965D LD ($9670),IX ;
- $9661 CALL $A29A    ;
+ $9624 LD A,($CAAD)  ; Get the direction flag (#R$CAAD)
+ $9627 CP $01        ; Is Herbert moving right?
+ $9629 JR NZ,$9633   ; Jump forward if not
+ $962B LD A,($9D6B)  ; { Is the x co-ordinate at the start of the room?
+ $962E CP $0A        ; }
+ $9630 JR C,$963B    ; Jump forward if it is
+ $9632 RET           ; Otherwise return
+*$9633 LD A,($9D6B)  ; { Is the x co-ordinate at the end of the room?
+ $9636 CP $E6        ; }
+ $9638 JR NC,$963B   ; Jump forward if it is
+ $963A RET           ; Otherwise return
+; The demo needs to switch to another room
+*$963B LD IX,($9670) ; Get the pointer to the next demo information (#R$9670)
+ $963F LD A,(IX+$00) ; Get the room number
+ $9642 CP $FF        ; Is it a terminator symbol instead?
+ $9644 JP Z,$95BB    ; Jump forward if so
+ $9647 LD ($C5C4),A  ; Otherwise set the current room room to this.
+ $964A LD L,(IX+$01) ; Get the x co-ordinate
+ $964D LD H,$98      ; Y co-ordinate is always the floor
+ $964F LD ($9D6B),HL ; Set the current position to this
+ $9652 LD A,(IX+$02) ; Get the direction flag
+ $9655 LD ($CAAD),A  ; Set it as current
+ $9658 CALL $AFFA    ; { Move #REGix to the next position in the demo table
+ $965B DEC IX        ; }
+ $965D LD ($9670),IX ; Set it as the next one to read
+ $9661 CALL $A29A    ; { Draw the room and set it up
  $9664 CALL $A5B5    ;
- $9667 CALL $A5D1    ;
- $966A LD SP,$0000   ;
- $966D JP $95F0      ;
+ $9667 CALL $A5D1    ; }
+ $966A LD SP,$0000   ; { Run the demo in the selected room
+ $966D JP $95F0      ; }
 
-; Data block at 9670
+; Pointer to current sequence in demo
 b$9670 DEFW $9994
 
 ; "I'm waiting!"
@@ -3787,8 +3787,8 @@ c$991F CALL $9913    ; Clear highlighted selections.
 ;
 ; Used by the routine at #R$95BB.
 c$994C CALL $943E    ; Blank the screen.
- $994F LD HL,$9994   ;
- $9952 LD ($9670),HL ;
+ $994F LD HL,$9994   ; { Set the demo to start from the beginning.
+ $9952 LD ($9670),HL ; }
  $9955 LD HL,$0000   ;
  $9958 LD ($9DA6),HL ;
 ; This entry point is used by the routine at #R$991F.
@@ -3819,12 +3819,22 @@ c$994C CALL $943E    ; Blank the screen.
  $9990 LD ($CAAD),A  ; }
  $9993 RET           ;
 
-; Data block at 9994
-b$9994 DEFB $01,$0A,$02,$0B,$E6,$01,$12,$0A
- $999C DEFB $02,$04,$0A,$02,$0F,$0A,$02,$17
- $99A4 DEFB $0A,$02,$15,$E6,$01,$05,$0A,$02
- $99AC DEFB $03,$88,$01,$09,$E6,$01,$1C,$E6
- $99B4 DEFB $01,$0D,$0A,$02,$FF
+; Demo information
+;
+; Format is room number, x co-ordinate, direction
+b$9994 DEFB $01,$0A,$02
+ $9997 DEFB $0B,$E6,$01
+ $999A DEFB $12,$0A,$02
+ $999D DEFB $04,$0A,$02
+ $99A0 DEFB $0F,$0A,$02
+ $99A3 DEFB $17,$0A,$02
+ $99A6 DEFB $15,$E6,$01
+ $99A9 DEFB $05,$0A,$02
+ $99AC DEFB $03,$88,$01
+ $99AF DEFB $09,$E6,$01
+ $99B2 DEFB $1C,$E6,$01
+ $99B5 DEFB $0D,$0A,$02
+ $99B6 DEFB $FF
 
 ; Not used (?)
 u$99B9 PUSH AF       ;
@@ -5276,9 +5286,9 @@ c$A538 LD DE,($CAA4) ; Point #REGde to the inventory.
  $A557 CALL $BF82    ;
  $A55A CALL $B315    ;
  $A55D LD A,($9D64)  ; Get the number of ducks shot.
- $A560 CP $0B        ; Have all 12 been shot?
+ $A560 CP $0B        ; Have all 11 been shot?
  $A562 RET NZ        ; Return if not.
-; All 12 ducks have been shot, can Herbert get the item in the room?
+; All 11 ducks have been shot, can Herbert get the item in the room?
  $A563 LD A,($825D)  ; Get the y co-ordinate for the item in this room
  $A566 CP $98        ; Is it on the floor?
  $A568 RET Z         ; Return if it is
@@ -7303,7 +7313,7 @@ c$BD4D LD A,($CA8E)  ;
  $BDB8 CALL $8CA5    ;
  $BDBB POP BC        ;
  $BDBC DJNZ $BD72    ;
- $BDBE LD A,($9D64)  ; { Have all 12 ducks been shot?
+ $BDBE LD A,($9D64)  ; { Have all 11 ducks been shot?
  $BDC1 CP $0B        ; }
  $BDC3 RET Z         ; Return if so
  $BDC4 LD A,($825C)  ;
@@ -8552,7 +8562,7 @@ g$CAA5 DEFB $00
 ; Set to 1 if the room's object needs to be updated
 g$CAA6 DEFB $00
 
-; Game flag 7 -
+; Game flag 7 - Cannon has been fired
 g$CAA7 DEFB $00
 
 ; Game flag 1 - Ten pence is real / chocolate
