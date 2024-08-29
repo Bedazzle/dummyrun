@@ -280,6 +280,9 @@ c $9913 Clear highlighted control selections
 c $991F Select the right control that the user wanted
 c $994C Print the control selection screen and see if a key was pressed
 b $9994
+c $99B9
+b $99C1
+b $9A41
 c $9A46
 c $9AAF
 c $9AF1 A collision has occured. Increase tears. ;-(
@@ -381,8 +384,10 @@ c $A975
 b $A9BF
 c $A9CA
 b $A9F1
-b $AA22
-b $AAA6
+b $AA31
+b $AAB1
+b $AB31
+b $AB71
 b $AB9D Room 16 movement data
 c $ABA3
 b $AC0B
@@ -414,7 +419,7 @@ c $B070
 b $B08F
 c $B0B9
 b $B0DE
-b $B141
+b $B15E
 c $B174
 b $B190
 c $B1D9
