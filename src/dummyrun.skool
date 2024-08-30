@@ -8538,22 +8538,18 @@ g$CA96 DEFB $00
 ; Used when jumping. Holds an index to an entry at #R$9120 
 g$CA97 DEFB $00
 
-; Game status buffer entry at CA98
-g$CA98 DEFB $00
+; Unused
+u$CA98 DEFB $00,$00,$00
 
-; Game status buffer entry at CA99
-g$CA99 DEFB $00
-
-; Game status buffer entry at CA9A
-g$CA9A DEFB $00
-
-; Game status buffer entry at CA9B
+; Frame ID for the cloud over Herbert's head
 g$CA9B DEFB $00
 
-; Game status buffer entry at CA9C
+; Number of loops left for cloud over Herbert's head
 g$CA9C DEFB $00
 
-; Game status buffer entry at CA9D
+; Set to 1 to mark Herbert as invulnerable
+;
+; This happens just after losing a life, or completing a task
 g$CA9D DEFB $00
 
 ; If set, Herbert does not throw a tantrum when losing a life
@@ -8562,17 +8558,19 @@ g$CA9E DEFB $00
 ; Game status buffer entry at CA9F
 g$CA9F DEFB $00
 
-; Game status buffer entry at CAA0
+; Set to 1 to require a background attribute refresh
 g$CAA0 DEFB $00
 
-; Game status buffer entry at CAA1
+; Set to 1 to signal an arithmetic overflow when printing number of jelly babies 
 g$CAA1 DEFB $00
 
-; Game status buffer entry at CAA2
+; Current facing direction
+;
+; 0 = left, 1 = right
 g$CAA2 DEFB $00
 
-; Game status buffer entry at CAA3
-g$CAA3 DEFB $00
+; Unused
+u$CAA3 DEFB $00
 
 ; First item carried
 g$CAA4 DEFB $00
@@ -8589,14 +8587,14 @@ g$CAA7 DEFB $00
 ; Game flag 1 - Ten pence is real / chocolate
 g$CAA8 DEFB $00
 
-; Game flags
-g$CAA9 DEFB $00
+; Unused
+u$CAA9 DEFB $00
 
-; Game flags
+; Current column to draw jelly babies
 g$CAAA DEFB $00
 
-; Game flags
-g$CAAB DEFB $00
+; Unused
+u$CAAB DEFB $00
 
 ; Game flag A - rope pulled
 g$CAAC DEFB $00
@@ -8606,22 +8604,21 @@ g$CAAC DEFB $00
 ; 0 - Not moving, 1 - move left, 2 - move right, 3 - jump / fire
 g$CAAD DEFB $00
 
-; Game flags
-g$CAAE DEFB $00
-
-; Game flags
-g$CAAF DEFB $00
+; Bottom 3 bits of co-ordinates
+;
+; Used during attribute refresh
+g$CAAE DEFB $00, $00
 
 ; Herbert's frame counter
 g$CAB0 DEFB $00
 
-; Game flags
-g$CAB1 DEFB $00
+; Unused
+u$CAB1 DEFB $00
 
-; Game flags
+; Set to 1 to mark Herbert pressed left on a rope
 g$CAB2 DEFB $00
 
-; Game flags
+; Set to 1 to mark Herbert pressed right on a rope
 g$CAB3 DEFB $00
 
 ; Set to 1 to make Herbert fire rather than jump
@@ -8636,7 +8633,10 @@ g$CAB6 DEFB $00
 ; Game flag - Jack in the box is open
 g$CAB7 DEFB $00
 
-; Game flags
+; Rope movement flag
+;
+; 0 = correct movement key pressed, will move up
+; 1 = wrong movement key pressed, will move down
 g$CAB8 DEFB $00
 
 ; Game flag 4 - Catapult is loaded
