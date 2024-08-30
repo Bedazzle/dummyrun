@@ -4312,13 +4312,19 @@ b$9CBE DEFB $FF,$C1,$00,$00,$FF,$01,$00,$1C
 b$9D3E DEFB $80,$80,$80,$80,$98,$80,$B0,$80
  $9D46 DEFB $80,$80,$80,$80,$80,$80,$80,$08
  $9D4E DEFB $80,$80,$0E,$80,$80,$80,$80,$80
- $9D56 DEFB $80,$80,$80,$80,$80
- 
-; Data block at 9D5B
-b$9D5B DEFB $0A,$00,$00
+ $9D56 DEFB $80,$80,$80,$80,$80,$0A
 
-; Data block at 9D5E
-b$9D5E DEFB $00,$00,$00,$00,$00
+; Temporary address used in drawing
+b$9D5C DEFW $00$00
+
+; Temporary address used when refreshing attributes
+b$9D5E DEFW $0000
+
+; Temporary address used when refreshing attributes
+b$9D60 DEFW $0000
+
+; Room 04 : Number of bricks knocked out
+g$9D62 DEFB $00
  
 ; Game won flag
 ;
@@ -4364,10 +4370,10 @@ g$9DA6 DEFB $00
 ; Y co-ordinate for drawing
 g$9DA7 DEFB $00
 
-; Game status buffer entry at 9DA8
+; Unused
 g$9DA8 DEFB $00
 
-; Game status buffer entry at 9DA9
+; Unused
 g$9DA9 DEFW $0000
 
 ; Copy of the current stack pointer
@@ -4399,13 +4405,13 @@ g$9DCC DEFB $00
 ; Room 02 : Frame ID for the jack in the box
 g$9DCD DEFB $00
 
-; Game status buffer entry at 9DCE
-g$9DCE DEFB $00
+; Unused
+u$9DCE DEFB $00
 
-; Game status buffer entry at 9DCF
+; Room 1C : Frame ID of light (3 - 7)
 g$9DCF DEFB $03
 
-; Game status buffer entry at 9DD0
+; Room 13 : Frame ID of moving objects (0 - #N$28)
 g$9DD0 DEFB $00
 
 ; Current lift floor - 1
@@ -4414,7 +4420,9 @@ g$9DD1 DEFB $03
 ; Random number seed
 g$9DD2 DEFW $04F3
 
-; Game status buffer entry at 9DD4
+; Current direction of moving objects
+;
+; 0 = left, 1 = right, 2 = down, 3 = up (?)
 g$9DD4 DEFB $00
 
 ; Room 0F : Frame ID for the water
@@ -4445,10 +4453,10 @@ b$9DD6 DEFB $00,$00,$00,$00,$00,$30,$30,$60
 b$9E5E DEFB $98,$98,$98,$98,$98,$98,$98,$98
  $9E66 DEFB $98,$98,$98,$98,$98,$98,$98,$98
  $9E6E DEFB $98,$98,$98,$98,$98,$98,$98,$98
- $9E76 DEFB $98,$98,$98,$98,$98
+ $9E76 DEFB $98,$98,$98,$98,$98,$58
  
-; Data block at 9E7B
-b$9E7B DEFB $58,$00,$00
+; Next location to use in the drawing routine
+g$9E7C DEFB $00,$00
 
 ; Character set (letters)
 ;
@@ -5874,7 +5882,7 @@ c$ABA3 LD IX,$AB9D   ; { Set the movement data to #R$AB9D
  $AC08 DJNZ $ABB0    ;
  $AC0A RET           ;
  
-; Data block at AC0B
+; Lift shaft object movement table
 b$AC0B DEFB $00,$01,$02,$03,$04,$05,$06,$19
  $AC13 DEFB $1A,$1B,$1C,$1D,$1E,$1F
 
@@ -6132,7 +6140,7 @@ b$AE22 DEFB $28,$80,$00
 ;
 ; Used by the routine at #R$A580.
 c$AE2E LD A,($CA8E)  ;
- $AE31 OR A          ;
+ $AE31 OR A          ; 
  $AE32 JR NZ,$AE38   ;
  $AE34 INC A         ;
  $AE35 LD ($CA8E),A  ;
@@ -7066,12 +7074,12 @@ c$BA5D LD HL,$BA54   ; Point #REGhl at default table
 ; Room 1A : Move objects
 ;
 ; Used by the routine at #R$A534.
-c$BA69 LD A,($CA8E)  ;
- $BA6C OR A          ;
- $BA6D JR NZ,$BA76   ;
- $BA6F INC A         ;
- $BA70 LD ($CA8E),A  ;
- $BA73 CALL $BA5D    ;
+c$BA69 LD A,($CA8E)  ; { Has the "moving objects" flag been set?
+ $BA6C OR A          ; }
+ $BA6D JR NZ,$BA76   ; Jump forward if so
+ $BA6F INC A         ; { Otherwise, set it now
+ $BA70 LD ($CA8E),A  ; }
+ $BA73 CALL $BA5D    ; Reset object movement to default
 *$BA76 LD HL,$B8D4   ; { Set to draw clouds (#R$B8D4)
  $BA79 LD ($8CB4),HL ; }
  $BA7C LD IX,$C8CF   ;
@@ -7714,14 +7722,14 @@ c$C0BE LD A,$FF      ;
  $C0CC LD (IX-$01),A ; }
  $C0CF XOR A         ; 
  $C0D0 CALL $AF09    ;
- $C0D3 LD A,($9D62)  ;
+ $C0D3 LD A,($9D62)  ; { Increment the number of bricks knocked out
  $C0D6 INC A         ;
- $C0D7 LD ($9D62),A  ;
- $C0DA CP $1F        ;
- $C0DC JR NZ,$C07F   ;
- $C0DE LD A,$09      ;
+ $C0D7 LD ($9D62),A  ; }
+ $C0DA CP $1F        ; Have all of them been knocked out?
+ $C0DC JR NZ,$C07F   ; Jump forward if not
+ $C0DE LD A,$09      ; { Play a "completed" sound effect
  $C0E0 LD ($9D63),A  ;
- $C0E3 CALL $AF09    ;
+ $C0E3 CALL $AF09    ; }
  $C0E6 JP $C07F      ;
 
 ; Store the attributes for an object
@@ -8505,8 +8513,14 @@ c$CA3F LD HL,($C524) ; Point #REGhl at the current food table entry (#R$C524)
  $CA8A CALL $AF09    ; }
  $CA8D RET           ; Return.
 
-; Data block at CA8E
-b$CA8E DEFB $00,$00,$00
+; Set to 1 when objects in a room have been initialised
+g$CA8E DEFB $00
+
+; Set to 1 when an item is being swapped
+g$CA8F DEFB $00
+
+; Unused
+b$CAF0 DEFB $00
 
 ; Tears energy
 g$CA91 DEFB $00
@@ -8555,8 +8569,8 @@ g$CA9D DEFB $00
 ; If set, Herbert does not throw a tantrum when losing a life
 g$CA9E DEFB $00
 
-; Game status buffer entry at CA9F
-g$CA9F DEFB $00
+; Unused
+u$CA9F DEFB $00
 
 ; Set to 1 to require a background attribute refresh
 g$CAA0 DEFB $00
@@ -10593,8 +10607,8 @@ u$F312 DEFB $00,$00,$00,$00,$00,$00,$00,$00
  $F31A DEFB $00,$00,$00,$00,$00,$00,$00,$00
  $F322 DEFB $00,$00
 
-; Data block at F324
-w$F324 DEFW $C183
+; Unused
+u$F324 DEFW $C183
  $F326 DEFW $A2CD
  $F328 DEFW $D56B
  $F32A DEFW $D6AB
