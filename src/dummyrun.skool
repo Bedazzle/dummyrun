@@ -1019,7 +1019,7 @@ c$80AA LD A,($CA92)  ; { Is Herbert currently immune (life just lost or demo mod
  $80B1 PUSH HL       ; }
  $80B2 LD A,$03      ; { Play the "ouch" sound effect.
  $80B4 CALL $AF09    ; }
-*$80B7 LD A,($CA91)  ;
+*$80B7 LD A,($CA91)  ; Put the amount of tears in #REGa
  $80BA PUSH AF       ;
  $80BB LD L,A        ;
  $80BC LD A,$27      ;
@@ -1029,8 +1029,8 @@ c$80AA LD A,($CA92)  ; { Is Herbert currently immune (life just lost or demo mod
  $80C1 LD H,$00      ;
  $80C3 LD DE,$F332   ; { Add the base address of the screen offset table (#R$F332)
  $80C6 ADD HL,DE     ; }
- $80C7 PUSH HL       ;
- $80C8 POP IX        ;
+ $80C7 PUSH HL       ; { Put the screen address pointer in #REGix
+ $80C8 POP IX        ; }
  $80CA LD C,$FF      ;
  $80CC POP AF        ;
  $80CD LD E,A        ;
@@ -1042,10 +1042,10 @@ c$80AA LD A,($CA92)  ; { Is Herbert currently immune (life just lost or demo mod
  $80D4 LD D,$00      ;
  $80D6 LD HL,$FB52   ; { Add the base address of the "full tears" graphic (#R$FB52)
  $80D9 ADD HL,DE     ; }
- $80DA LD E,(IX+$00) ;
- $80DD LD D,(IX+$01) ;
- $80E0 INC IX        ;
- $80E2 INC IX        ;
+ $80DA LD E,(IX+$00) ; { Put the actual screen address in #REGde.
+ $80DD LD D,(IX+$01) ; }
+ $80E0 INC IX        ; { Point #REGix to the next row.
+ $80E2 INC IX        ; }
  $80E4 LDI           ; { Copy the graphic over.
  $80E6 LDI           ;
  $80E8 LDI           ;
@@ -3463,7 +3463,7 @@ c$95BB LD SP,$0000   ; Point the stack somewhere safe.
 ; This entry point is used by the routine at #R$A95B.
 *$95F9 CALL $9097    ; Check for user input
  $95FC CALL $92C0    ; Update attributes
- $95FF CALL $9232    ;
+ $95FF CALL $9232    ; Increment the frame counter
  $9602 CALL $9616    ; Run the demo mode if necessary.
  $9605 CALL $9AF1    ; Check for losing a life.
  $9608 CALL $882D    ; Swap an item if Herbert is near one.
@@ -4329,16 +4329,13 @@ g$9D63 DEFB $00
 ; Room 1B : Number of ducks shot
 g$9D64 DEFB $00
 
-; Room 04 : Current X co-ordinate of wall being thrown across screen
-g$9D65 DEFB $F0
-
-; Currently active lift button
-g$9D66 DEFB $A8
+; Room 04 : Co-ordinate of wall being thrown across screen
+g$9D65 DEFB $F0, $A8
 
 ; Room 04 : Set to nonzero to throw a piece of wall across screen
 g$9D67 DEFB $00
 
-; Game status buffer at 9D68
+; Currently active lift button
 g$9D68 DEFB $00
 
 ; Current tick count.
@@ -4399,7 +4396,7 @@ g$9DCB DEFB $00
 ; Set to 1 if the shooting gallery should not be drawn as it is dark
 g$9DCC DEFB $00
 
-; Game status buffer entry at 9DCD
+; Room 02 : Frame ID for the jack in the box
 g$9DCD DEFB $00
 
 ; Game status buffer entry at 9DCE
@@ -5670,33 +5667,33 @@ c$A8EE LD A,($9D6B)  ; Get the current position (#R$9D6B)
  $A956 CALL $97C2    ;
  $A959 JR $A90C      ;
 
-; Routine at A95B
+; Reset falling flag after Herbert has reached a platform
 ;
 ; Used by the routines at #R$A965, #R$A975 and #R$AD28.
-c$A95B LD SP,$0000   ;
- $A95E XOR A         ;
- $A95F LD ($CA96),A  ;
- $A962 JP $95F9      ;
+c$A95B LD SP,$0000   ; Reset the stack
+ $A95E XOR A         ; { Reset the falling flag
+ $A95F LD ($CA96),A  ; }
+ $A962 JP $95F9      ; Jump back into the main loop
 
-; Routine at A965
+; Room 00 : Put Herbert on the top platform after climbing ropes
 ;
 ; Used by the routine at #R$A8EE.
-c$A965 LD HL,($9D6B) ;
- $A968 LD ($9DC6),HL ;
- $A96B LD A,$50      ;
- $A96D LD ($9D6C),A  ;
+c$A965 LD HL,($9D6B) ; { Make a copy of the current position.
+ $A968 LD ($9DC6),HL ; }
+ $A96B LD A,$50      ; { Set the current y co-ordinate to #N$50.
+ $A96D LD ($9D6C),A  ; }
  $A970 CALL $92C0    ; Update attributes
- $A973 JR $A95B      ;
+ $A973 JR $A95B      ; Reset falling flag and re-enter main loop
 
-; Run Herbert on the ropes
+; Room 00 : Run Herbert on the ropes
 ;
 ; Used by the routine at #R$A8EE.
-c$A975 CALL $ADE1    ;
+c$A975 CALL $ADE1    ; heck for input on the ropes
  $A978 CALL $96BE    ; Copy the sprite buffer to the screen buffer.
- $A97B CALL $A353    ;
- $A97E CALL $ADE1    ;
- $A981 CALL $CA3F    ;
- $A984 CALL $B4DA    ;
+ $A97B CALL $A353    ; Draw objects
+ $A97E CALL $ADE1    ; Check for input on the ropes
+ $A981 CALL $CA3F    ; Check for food
+ $A984 CALL $B4DA    ; Move objects
  $A987 CALL $A9CA    ; Turn the cheat mode on if the right keys are pressed!
  $A98A LD A,($CAB2)  ;
  $A98D LD B,A        ;
@@ -5881,7 +5878,7 @@ c$ABA3 LD IX,$AB9D   ; { Set the movement data to #R$AB9D
 b$AC0B DEFB $00,$01,$02,$03,$04,$05,$06,$19
  $AC13 DEFB $1A,$1B,$1C,$1D,$1E,$1F
 
-; Routine at AC19
+; Set up lift shaft
 ;
 ; Used by the routine at #R$AC60.
 c$AC19 LD A,($6D00)  ;
@@ -6047,23 +6044,23 @@ c$AD28 LD HL,($9D6B) ; Get the current position in #REGhl (#R$9D6B)
  $AD80 CALL $AD84    ;
  $AD83 RET           ;
 
-; Routine at AD84
+; Room 02 : Show the jack in the box
 ;
 ; Used by the routine at #R$AD28.
-c$AD84 LD A,($CAB7)  ;
- $AD87 OR A          ;
- $AD88 RET Z         ;
- $AD89 LD HL,$9860   ;
- $AD8C LD ($9DA6),HL ;
- $AD8F LD HL,$ADA1   ;
- $AD92 LD ($8CB4),HL ;
- $AD95 LD A,($9DCD)  ;
+c$AD84 LD A,($CAB7)  ; { Is the box open?
+ $AD87 OR A          ; }
+ $AD88 RET Z         ; Return if it isn't.
+ $AD89 LD HL,$9860   ; { Position is fixed to #N$60, #N$98.
+ $AD8C LD ($9DA6),HL ; }
+ $AD8F LD HL,$ADA1   ; { Set the graphic store to the jack (#R$ADA1).
+ $AD92 LD ($8CB4),HL ; }
+ $AD95 LD A,($9DCD)  ; { Toggle the frame ID between 0 and 1.
  $AD98 XOR $01       ;
- $AD9A LD ($9DCD),A  ;
- $AD9D CALL $8CA5    ;
- $ADA0 RET           ;
+ $AD9A LD ($9DCD),A  ; }
+ $AD9D CALL $8CA5    ; { Display the jack and return.
+ $ADA0 RET           ; }
 
-; Data block at ADA1
+; Graphics (Jack in the box)
 b$ADA1 DEFB $00,$00,$00,$00,$00,$00,$03,$C0
  $ADA9 DEFB $0F,$F0,$39,$9C,$2B,$D4,$2E,$74
  $ADB1 DEFB $1E,$78,$1B,$D8,$0C,$30,$07,$E0
@@ -6223,7 +6220,7 @@ c$AE2E LD A,($CA8E)  ;
  $AECC DJNZ $AE72    ;
  $AECE RET           ;
 
-; Routine at AECF
+; Room 1D : Adjust position of a float
 ;
 ; Used by the routine at #R$AE2E.
 c$AECF LD A,D        ;
@@ -7053,20 +7050,20 @@ b$B8D4 DEFB $80,$01,$06,$68,$80,$00,$2B,$7C
  $BA44 DEFB $88,$0F,$01,$40,$F8,$18,$03,$00
  $BA4C DEFB $F0,$78,$02,$02,$F0,$F8,$04,$02
 
-; Data block at BA54
+; Default movement table
 b$BA54 DEFB $00,$38,$00,$EE,$38,$00,$78,$38
  $BA5C DEFB $00
 
-; Routine at BA5D
+; Reset movement of objects to default
 ;
 ; Used by the routines at #R$9AF1 and #R$BA69.
-c$BA5D LD HL,$BA54   ;
- $BA60 LD DE,$C8CF   ;
- $BA63 LD BC,$0009   ;
- $BA66 LDIR          ;
- $BA68 RET           ;
+c$BA5D LD HL,$BA54   ; Point #REGhl at default table
+ $BA60 LD DE,$C8CF   ; Point #REGde at working table
+ $BA63 LD BC,$0009   ; 9 bytes to copy
+ $BA66 LDIR          ; { Copy and return
+ $BA68 RET           ; }
 
-; Routine at BA69
+; Room 1A : Move objects
 ;
 ; Used by the routine at #R$A534.
 c$BA69 LD A,($CA8E)  ;
@@ -7108,8 +7105,8 @@ c$BA69 LD A,($CA8E)  ;
  $BAB0 LD (IX+$01),H ;
  $BAB3 LD ($9DA6),HL ;
  $BAB6 LD A,(IX+$02) ;
- $BAB9 CALL $93BC    ;
- $BABC CALL $AF9F    ;
+ $BAB9 CALL $93BC    ; Update moving object positions
+ $BABC CALL $AF9F    ; Check for losing a life
  $BABF INC IX        ;
  $BAC1 INC IX        ;
  $BAC3 INC IX        ;
@@ -7117,18 +7114,20 @@ c$BA69 LD A,($CA8E)  ;
  $BAC6 DJNZ $BA82    ;
  $BAC8 RET           ;
 
-; Routine at BAC9
+; Room 0E : Change movement of a tennis ball
 ;
 ; Used by the routine at #R$BAF0.
-c$BAC9 CALL $AE0A      ; Generate a random number
+;
+; IX Pointer to tennis ball data
+c$BAC9 CALL $AE0A      ; { Generate a random number between 1 and 4
  $BACC AND $03         ;
- $BACE INC A           ;
- $BACF LD (IX+$02),A   ;
- $BAD2 CALL $AE0A      ; Generate a random number
- $BAD5 AND $07         ;
+ $BACE INC A           ; }
+ $BACF LD (IX+$02),A   ; 
+ $BAD2 CALL $AE0A      ; { Generate a random number between 0 and 7
+ $BAD5 AND $07         ; }
  $BAD7 LD C,A          ;
- $BAD8 CALL $AE0A      ; Generate a random number
- $BADB AND $07         ;
+ $BAD8 CALL $AE0A      ; { Generate a random number between 0 and 7
+ $BADB AND $07         ; }
  $BADD SUB C           ;
  $BADE AND $07         ;
  $BAE0 LD (IX+$03),A   ;
@@ -7137,7 +7136,7 @@ c$BAC9 CALL $AE0A      ; Generate a random number
  $BAEB LD (IX+$04),$00 ;
  $BAEF RET             ;
 
-; Routine at BAF0
+; Room 0E : Move objects
 ;
 ; Used by the routine at #R$A4D2.
 c$BAF0 LD A,($CA8E)  ;
@@ -7333,7 +7332,7 @@ c$BD4D LD A,($CA8E)  ;
  $BDD2 LD ($8657),A  ;
  $BDD5 RET           ;
 
-; Routine at BDD6
+; Room 07 : Run one frame of the game
 ;
 ; Used by the routine at #R$BE93.
 c$BDD6 LD IX,$C8CF   ;
@@ -7788,7 +7787,7 @@ c$C0E9 PUSH AF       ; Store #REGaf.
  $C14C POP AF        ; { Restore #REGaf and return.
  $C14D RET           ; }
 
-; Attributes for objects
+; Attributes for objects (00 - 07)
 b$C14E DEFB $47,$05,$05,$45 ; Object 00 (#CALL:print_object_desc(0))
  $C152 DEFB $45,$42,$42,$42 ; Object 01 (#CALL:print_object_desc(1))
  $C156 DEFB $06,$06,$06,$06 ; Object 02 (#CALL:print_object_desc(2))
@@ -7797,8 +7796,12 @@ b$C14E DEFB $47,$05,$05,$45 ; Object 00 (#CALL:print_object_desc(0))
  $C162 DEFB $47,$47,$05,$45 ; Object 05 (#CALL:print_object_desc(5))
  $C166 DEFB $45,$45,$45,$45 ; Object 06 (#CALL:print_object_desc(6))
  $C16A DEFB $06,$06,$06,$06 ; Object 07 (#CALL:print_object_desc(7))
- $C16E DEFB $E8,$09,$3A,$A8 ; Object 08 (#CALL:print_object_desc(8))
- $C172 DEFB $45,$45,$45,$45 ; Object 09 (#CALL:print_object_desc(9))
+
+; Room 06 / 1B : Bird movement
+b$C16E DEFB $E8,$09,$3A,$A8 ;
+
+; Attributes for objects (09 - 13)
+b$C172 DEFB $45,$45,$45,$45 ; Object 09 (#CALL:print_object_desc(9))
  $C176 DEFB $07,$07,$07,$07 ; Object 0A (#CALL:print_object_desc($A))
  $C17A DEFB $47,$06,$47,$06 ; Object 0B (#CALL:print_object_desc($B))
  $C17E DEFB $56,$56,$56,$56 ; Object 0C (#CALL:print_object_desc($C))
@@ -7809,8 +7812,20 @@ b$C14E DEFB $47,$05,$05,$45 ; Object 00 (#CALL:print_object_desc(0))
  $C192 DEFB $06,$06,$06,$06 ; Object 11 (#CALL:print_object_desc($11))
  $C196 DEFB $07,$42,$07,$42 ; Object 12 (#CALL:print_object_desc($12))
  $C19A DEFB $07,$07,$07,$07 ; Object 13 (#CALL:print_object_desc($13))
- $C19E DEFB $03,$05,$08,$98 ; Object 14 (#CALL:print_object_desc($14))
- $C1A2 DEFB $06,$06,$06,$06 ; Object 15 (#CALL:print_object_desc($15))
+
+; Room 07 : "Strength" of bomb
+g$C19E DEFB $03
+
+; Room 0A : Teddy flag
+;
+; Set to 05 if the teddy is active, or #N$FF if it has reached the right hand side
+g$C19F DEFB $05
+
+; Room 0A : Position of the teddy / key
+g$C1A0 DEFB $08,$98 ;
+
+; Attributes for objects (15 - 1D)
+b$C1A2 DEFB $06,$06,$06,$06 ; Object 15 (#CALL:print_object_desc($15))
  $C1A6 DEFB $46,$46,$46,$46 ; Object 16 (#CALL:print_object_desc($16))
  $C1AA DEFB $46,$06,$46,$06 ; Object 17 (#CALL:print_object_desc($17))
  $C1AE DEFB $42,$46,$46,$42 ; Object 18 (#CALL:print_object_desc($18))
@@ -8140,7 +8155,7 @@ c$C78F LD A,$01      ;
  $C794 LD A,$01      ;
  $C796 LD ($CABC),A  ;
 *$C799 CALL $96BE    ; Copy the sprite buffer to the screen buffer.
- $C79C CALL $C915    ;
+ $C79C CALL $C915    ; Move the daleks
  $C79F CALL $C877    ; Move the Teddy if Herbert has it.
  $C7A2 CALL $9097    ; Check for user input.
  $C7A5 CALL $92C0    ; Update attributes
@@ -8169,7 +8184,7 @@ c$C78F LD A,$01      ;
  $C7DE CALL $A5D1    ;
  $C7E1 JP $95EA      ;
 
-; Routine at C7E4
+; Room 0A : Move the Daleks
 ;
 ; Used by the routine at #R$C843.
 c$C7E4 CP $02        ;
@@ -8217,11 +8232,8 @@ c$C7E4 CP $02        ;
  $C83E DEC A         ;
  $C83F LD ($CABE),A  ;
  $C842 RET           ;
-
-; Routine at C843
-;
-; Used by the routine at #R$C915.
-c$C843 LD A,(IX+$06)   ;
+; Make the Dalek fire if necessary
+*$C843 LD A,(IX+$06)   ;
  $C846 OR A            ;
  $C847 JR NZ,$C7E4     ;
  $C849 LD A,($CABE)    ;
@@ -8230,6 +8242,7 @@ c$C843 LD A,(IX+$06)   ;
  $C84F CALL $AE0A      ; Generate a random number
  $C852 CP $14          ; Is it #N$14 or less?
  $C854 RET NC          ; Return if so
+; Make the Dalek fire something
  $C855 LD A,($CABE)    ;
  $C858 INC A           ;
  $C859 LD ($CABE),A    ;
@@ -8242,12 +8255,8 @@ c$C843 LD A,(IX+$06)   ;
  $C869 LD (IX+$05),H   ;
  $C86C LD (IX+$06),$02 ;
  $C870 JR $C80D        ;
-
-; Routine at C872
-;
-; Used by the routine at #R$C7E4.
-c$C872 CALL $AF9F    ;
- $C875 JR $C80D      ;
+*$C872 CALL $AF9F      ; Check for collision
+ $C875 JR $C80D        ;
 
 ; Room 0A : Move the teddy
 ;
@@ -8259,39 +8268,39 @@ c$C877 LD DE,($CAA4) ; Point #REGde to the inventory.
  $C880 CP E          ; Is it the second item carried?
  $C881 RET NZ        ; Return if it isn't.
 ; Herbert is carrying the teddy, so it can be used.
-*$C882 LD A,($C19F)  ;
- $C885 CP $FF        ;
- $C887 RET Z         ;
+*$C882 LD A,($C19F)  ; { Has the teddy reached the door?
+ $C885 CP $FF        ; }
+ $C887 RET Z         ; Return if it has
  $C888 DEC A         ;
  $C889 LD ($C19F),A  ;
  $C88C OR A          ;
  $C88D JR NZ,$C8AC   ;
- $C88F LD A,$05      ;
- $C891 LD ($C19F),A  ;
- $C894 LD HL,($C1A0) ;
+ $C88F LD A,$05      ; { Set the teddy to active
+ $C891 LD ($C19F),A  ; }
+ $C894 LD HL,($C1A0) ; { Increment the teddy's position
  $C897 INC L         ;
- $C898 LD ($C1A0),HL ;
- $C89B LD A,L        ;
- $C89C CP $D7        ;
- $C89E JR C,$C8AF    ;
+ $C898 LD ($C1A0),HL ; }
+ $C89B LD A,L        ; { Has the teddy reached the right hand side?
+ $C89C CP $D7        ; }
+ $C89E JR C,$C8AF    ; Jump forward if so
  $C8A0 LD A,$FF      ;
  $C8A2 LD ($C19F),A  ;
- $C8A5 LD HL,$0000   ;
- $C8A8 LD ($C1A0),HL ;
+ $C8A5 LD HL,$0000   ; { Clear the teddy's position so it won't be displayed
+ $C8A8 LD ($C1A0),HL ; }
  $C8AB RET           ;
-*$C8AC LD HL,($C1A0) ;
-*$C8AF LD ($9DA6),HL ;
- $C8B2 LD HL,$C326   ;
- $C8B5 LD ($8CB4),HL ;
- $C8B8 XOR A         ;
- $C8B9 CALL $8CA5    ;
- $C8BC LD A,($9DA6)  ;
+*$C8AC LD HL,($C1A0) ; { Set to draw at the teddy's current position
+*$C8AF LD ($9DA6),HL ; }
+ $C8B2 LD HL,$C326   ; { Set the graphic to the teddy (#R$C326)
+ $C8B5 LD ($8CB4),HL ; }
+ $C8B8 XOR A         ; { Put the sprite in the buffer
+ $C8B9 CALL $8CA5    ; }
+ $C8BC LD A,($9DA6)  ;{ Move forward #N$10 cells to draw the key
  $C8BF ADD A,$10     ;
- $C8C1 LD ($9DA6),A  ;
- $C8C4 LD HL,$C446   ;
- $C8C7 LD ($8CB4),HL ;
- $C8CA XOR A         ;
- $C8CB CALL $8CA5    ;
+ $C8C1 LD ($9DA6),A  ; }
+ $C8C4 LD HL,$C446   ; { Set the graphic to the box key (#R$C446)
+ $C8C7 LD ($8CB4),HL ; }
+ $C8CA XOR A         ; { Put the sprite in the buffer
+ $C8CB CALL $8CA5    ; }
  $C8CE RET           ;
 
 ; Temporary storage for moving objects in the current room
@@ -8305,7 +8314,7 @@ b$C8CF DEFB $08,$38,$02,$01,$00,$00,$00,$18
  $C907 DEFB $88,$38,$02,$01,$00,$00,$00,$98
  $C90F DEFB $38,$02,$01,$00,$00,$00
 
-; Routine at C915
+; Room 0A : Update objects
 ;
 ; Used by the routine at #R$C78F.
 c$C915 LD A,($CA8E)    ;
@@ -8314,11 +8323,11 @@ c$C915 LD A,($CA8E)    ;
  $C91B LD C,A          ;
  $C91C INC A           ;
  $C91D LD ($CA8E),A    ;
- $C920 CALL $CA07      ;
- $C923 LD B,$0A        ;
+ $C920 CALL $CA07      ; Set up the teddy
+ $C923 LD B,$0A        ; 10 Daleks
  $C925 LD A,$08        ;
- $C927 LD DE,$0007     ;
- $C92A LD IX,$C8CF     ;
+ $C927 LD DE,$0007     ; 7 bytes between entries
+ $C92A LD IX,$C8CF     ; Point #REGix at the movement table at #R$C8CF
 *$C92E LD (IX+$00),A   ;
  $C931 LD (IX+$01),$38 ;
  $C935 LD (IX+$02),$02 ;
@@ -8326,17 +8335,17 @@ c$C915 LD A,($CA8E)    ;
  $C93D LD (IX+$04),C   ;
  $C940 LD (IX+$05),C   ;
  $C943 LD (IX+$06),C   ;
- $C946 ADD A,$10       ;
- $C948 ADD IX,DE       ;
- $C94A DJNZ $C92E      ;
+ $C946 ADD A,$10       ; { Point #REGix at the next entry 
+ $C948 ADD IX,DE       ; }
+ $C94A DJNZ $C92E      ; Loop until all movement information is filled in
  $C94C XOR A           ;
  $C94D LD ($CABE),A    ;
  $C950 LD ($CABD),A    ;
-*$C953 LD HL,$C1C6     ;
- $C956 LD ($8CB4),HL   ;
- $C959 LD IX,$C8CF     ;
- $C95D LD B,$0A        ;
-*$C95F PUSH BC         ;
+*$C953 LD HL,$C1C6     ; { Point the graphics store to #R$C1C6.
+ $C956 LD ($8CB4),HL   ; }
+ $C959 LD IX,$C8CF     ; Point #REGix at the movement table
+ $C95D LD B,$0A        ; 10 entries
+*$C95F PUSH BC         ; Store #REGbc
  $C960 LD L,(IX+$00)   ;
  $C963 LD H,(IX+$01)   ;
  $C966 LD C,(IX+$02)   ;
@@ -8383,11 +8392,11 @@ c$C915 LD A,($CA8E)    ;
  $C9BB CALL $8158      ;
  $C9BE POP IX          ;
  $C9C0 CALL $C843      ;
- $C9C3 LD DE,$0007     ;
- $C9C6 ADD IX,DE       ;
- $C9C8 POP BC          ;
- $C9C9 DJNZ $C95F      ;
- $C9CB RET             ;
+ $C9C3 LD DE,$0007     ; { Point #REGix to the next entry
+ $C9C6 ADD IX,DE       ; }
+ $C9C8 POP BC          ; Restore #REGbc
+ $C9C9 DJNZ $C95F      ; { Loop back until all entries are updated
+ $C9CB RET             ; }
 *$C9CC LD A,(IX+$06)   ;
  $C9CF OR A            ;
  $C9D0 JR NZ,$C9E9     ;
@@ -8412,18 +8421,22 @@ c$C915 LD A,($CA8E)    ;
  $CA02 LD ($CABD),A    ;
  $CA05 JR $C9CC        ;
 
-; Routine at CA07
+; Room 0A : Set up the teddy
 ;
 ; Used by the routine at #R$C915.
-c$CA07 LD HL,$A808   ;
- $CA0A LD ($C1A0),HL ;
- $CA0D LD A,$05      ;
- $CA0F LD ($C19F),A  ;
+c$CA07 LD HL,$A808   ; { Set the teddy's default position (#R$C1A0)
+ $CA0A LD ($C1A0),HL ; }
+ $CA0D LD A,$05      ; { Set the teddy to active
+ $CA0F LD ($C19F),A  ; }
  $CA12 RET           ;
 
-; Routine at CA13
+; Room 0A : Update the position of objects
 ;
 ; Used by the routines at #R$BD4D, #R$BDD6, #R$BFE4 and #R$C915.
+;
+; HL Current position
+; DE Distance to move by
+; B On return, set to 1 if object has disappeared
 c$CA13 LD B,$00      ;
  $CA15 LD A,L        ;
  $CA16 SUB E         ;
@@ -10547,22 +10560,16 @@ b$F232 DEFB $00,$00,$00,$00,$00,$00,$00,$00
  $F262 DEFB $E7,$FE,$73,$FC,$38,$F8,$1F,$F0
  $F26A DEFB $07,$C0,$00,$00,$00,$00,$00,$00
 
-; Data block at F272
-b$F272 DEFB $2D,$F3,$56,$3E,$BB,$CF,$EB,$FF
- $F27A DEFB $BB,$CC,$EA,$1F,$57,$FC,$29,$3B
-
-; Unused
-u$F282 DEFB $00,$00,$00,$00,$00,$00,$00,$00
- $F28A DEFB $00,$00,$00,$00,$00,$00,$00,$00
-
 ; Graphics (float)
 ;
-; #UDGARRAY2,$46,,2;$F292-$F2A1-1-16(float)
-b$F292 DEFB $CF,$9C,$3F,$FA,$F2,$1F,$8F,$E3
+;#UDGARRAY2,$46,,2;$F272-$F291-1-16(float1) #UDGARRAY2,$46,,2;$F292-$F2B1-1-16(float2)
+b$F272 DEFB $2D,$F3,$56,$3E,$BB,$CF,$EB,$FF
+ $F27A DEFB $BB,$CC,$EA,$1F,$57,$FC,$29,$3B
+ $F282 DEFB $00,$00,$00,$00,$00,$00,$00,$00
+ $F28A DEFB $00,$00,$00,$00,$00,$00,$00,$00
+ $F292 DEFB $CF,$9C,$3F,$FA,$F2,$1F,$8F,$E3
  $F29A DEFB $FF,$DF,$F8,$75,$73,$F6,$DC,$CC
-
-; Unused
-u$F2A2 DEFB $00,$00,$00,$00,$00,$00,$00,$00
+ $F2A2 DEFB $00,$00,$00,$00,$00,$00,$00,$00
  $F2AA DEFB $00,$00,$00,$00,$00,$00,$00,$00
 
 ; Graphics (food)
