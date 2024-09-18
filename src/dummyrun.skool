@@ -930,6 +930,8 @@ w$800E DEFW $87AA ; SWAPFOR( x )
  $801A DEFW $87A1 ; SET( x, y)
 
 ; Action 4 : PRESSLIFT(x). Press a lift button
+;
+; HL Pointer to current logic entry
 c$801C LD D,(HL)     ;
  $801D INC HL        ;
  $801E LD A,($9D68)  ;
@@ -1877,23 +1879,24 @@ c$88DE LD A,(HL)     ; Get the current byte.
 ; Used by the routines at #R$801C, #R$8701, #R$8729, #R$8733, #R$8755, #R$87A1,
 ; #R$87AA, #R$87EE, #R$8851, #R$88A8 and #R$88BD.
 ;
+; HL Pointer to the current logic routine
 ; DE On return, holds the address of the next logic routine to execute
-c$88E6 LD A,(HL)     ;
- $88E7 INC HL        ;
- $88E8 CP $F1        ;
- $88EA JP Z,$88C6    ;
- $88ED ADD A,A       ;
+c$88E6 LD A,(HL)     ; Put the logic ID in #REGa.
+ $88E7 INC HL        ; Move #REGhl to the next entry in the buffer.
+ $88E8 CP $F1        ; Is it a logic end marker?
+ $88EA JP Z,$88C6    ; If so, jump back to process the next table.
+ $88ED ADD A,A       ; { Double the logic ID to get a word, and put it in #REGde.
  $88EE LD E,A        ;
- $88EF LD D,$00      ;
- $88F1 PUSH HL       ;
- $88F2 LD HL,$800E   ;
- $88F5 ADD HL,DE     ;
- $88F6 LD E,(HL)     ;
- $88F7 INC HL        ;
- $88F8 LD D,(HL)     ;
- $88F9 POP HL        ;
- $88FA PUSH DE       ;
- $88FB RET           ;
+ $88EF LD D,$00      ; }
+ $88F1 PUSH HL       ; Store the next entry in the logic buffer.
+ $88F2 LD HL,$800E   ; { Add the base address of the logic table (#R$800E)
+ $88F5 ADD HL,DE     ; }
+ $88F6 LD E,(HL)     ; { Extract the address to jump to into #REGde.
+ $88F7 INC HL        ; 
+ $88F8 LD D,(HL)     ; }
+ $88F9 POP HL        ; Restore the logic buffer entry, used as a parameter
+ $88FA PUSH DE       ; { Jump to the address found
+ $88FB RET           ; }
 
 ; Floor for the bottom of the lift
 ;
